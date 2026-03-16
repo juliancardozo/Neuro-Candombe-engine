@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Neuro Candombe - MVP</title>
+  <script src="https://unpkg.com/tone@14.7.77/build/Tone.min.js"></script>
+</head>
+<body>
+  <h1>Neuro Candombe - Generate</h1>
+  <label>Tempo: <input id="tempo" value="90" /></label>
+  <label>Bars: <input id="bars" value="4" /></label>
+  <button id="gen">Generate & Play</button>
+
+  <script>
+    const players = new Tone.Players({
+      "chico": "/samples/chico.wav",
+      "repique": "/samples/repique.wav",
+      "piano": "/samples/piano.wav"
+    }).toDestination();
+    document.getElementById("gen").onclick = async () => {
+      const tempo = +document.getElementById("tempo").value;
+      const bars = +document.getElementById("bars").value;
+      const res = await fetch(`/generate?tempo=${tempo}&bars=${bars}`);
+      const data = await res.json();
+      const events = data.events;
+      Tone.Transport.bpm.value = tempo;
+      Tone.Transport.cancel();
+      events.forEach(ev => {
+        const t = ev.time; // seconds
+        Tone.Transport.schedule(time => {
+          const p = players.player(ev.instrument);
+          if (p) {
+            p.volume.value = (ev.velocity/127)*-6; // rough mapping
+            p.start(time);
+          }
+        }, t + 0.1);
+      });
+      Tone.Transport.start();
+    };
+  </script>
+</body>
+</html>
