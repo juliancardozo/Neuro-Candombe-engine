@@ -102,7 +102,7 @@ Este repo queda preparado para despliegue hibrido:
    - frontend-only, sin instalar dependencias Python
 3. Define la variable de entorno `API_BASE_URL` con la URL publica del backend, por ejemplo:
    ```bash
-   API_BASE_URL=https://neuro-candombe-api.onrender.com
+   API_BASE_URL= https://neuro-candombe-engine.onrender.com/
    ```
 
 Durante el build, Netlify genera `web/runtime-config.js` con esa URL y el frontend pasa a llamar a la API remota.

@@ -235,6 +235,32 @@
       flex-wrap: wrap;
     }
 
+    .onboarding-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .onboarding-card {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid rgba(17, 119, 211, 0.1);
+    }
+
+    .onboarding-card strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.98rem;
+    }
+
+    .onboarding-card span {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.88rem;
+    }
+
     .button {
       border: none;
       border-radius: 16px;
@@ -378,6 +404,53 @@
       margin-top: 18px;
       padding-top: 18px;
       border-top: 1px solid var(--line);
+    }
+
+    .quickstart {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 18px;
+      padding: 14px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid rgba(17, 119, 211, 0.1);
+    }
+
+    .quickstart p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.9rem;
+    }
+
+    .quickstart-steps {
+      display: grid;
+      gap: 8px;
+    }
+
+    .quickstart-step {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .quickstart-step strong {
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: rgba(42,155,232,0.12);
+      color: var(--accent-deep);
+      font-size: 0.82rem;
+    }
+
+    .quickstart-step span {
+      color: var(--text);
+      line-height: 1.45;
+      font-size: 0.92rem;
     }
 
     .preset-stack,
@@ -667,7 +740,7 @@
     }
 
     @media (max-width: 980px) {
-      .topbar, .hero, .workspace, .stats, .chips, .controls, .meta {
+      .topbar, .hero, .workspace, .stats, .chips, .controls, .meta, .onboarding-strip {
         grid-template-columns: 1fr;
       }
 
@@ -707,18 +780,32 @@
 
     <section class="hero">
       <article class="panel hero-copy">
-        <div class="eyebrow">Patrimonio ritmico en movimiento</div>
+        <div class="eyebrow">Entrada simple a la aplicacion</div>
         <h2>Explora el candombe.</h2>
-        <p>Una app para escuchar, comparar y preservar la logica del chico, el repique y el piano desde una mirada de rueda, barrio y memoria uruguaya.</p>
+        <p>Esta app te deja arrancar rapido: elegis una base, generas un ejemplo y ves como se reparten chico, repique y piano en la rueda.</p>
         <div class="hero-actions">
-          <button class="button" id="gen">Generar y tocar</button>
-          <div class="subnote" id="cta-note">Si no hay modelo cargado, la app arma una base ritmica con reglas musicales.</div>
+          <button class="button" id="gen">Generar base</button>
+          <div class="subnote" id="cta-note">Si es tu primera vez, deja los valores por defecto y apreta Generar base.</div>
         </div>
         <div class="chips">
           <div class="chip">Modo<strong>Exploracion</strong></div>
           <div class="chip">Punto de partida<strong id="chip-seed">Clave madre</strong></div>
           <div class="chip">Apertura<strong id="chip-temperature">0.90</strong></div>
           <div class="chip">Carga ritmica<strong id="chip-density">0.55</strong></div>
+        </div>
+        <div class="onboarding-strip">
+          <div class="onboarding-card">
+            <strong>1. Elegi una base</strong>
+            <span>Usa el punto de partida o carga un recorrido sugerido.</span>
+          </div>
+          <div class="onboarding-card">
+            <strong>2. Genera y escucha</strong>
+            <span>La app arma una rueda corta para oir el caracter del toque.</span>
+          </div>
+          <div class="onboarding-card">
+            <strong>3. Mira el mapa</strong>
+            <span>Segui los carriles para entender quien sostiene y quien responde.</span>
+          </div>
         </div>
       </article>
 
@@ -738,8 +825,25 @@
 
     <section class="workspace">
       <aside class="panel control-panel">
-        <div class="eyebrow">Mesa de exploracion</div>
-        <h3>Modela el toque</h3>
+        <div class="eyebrow">Paso a paso</div>
+        <h3>Empeza por aca</h3>
+        <div class="quickstart">
+          <p>Si queres entrar rapido, hace esto:</p>
+          <div class="quickstart-steps">
+            <div class="quickstart-step">
+              <strong>1</strong>
+              <span>Deja tempo y compases como estan.</span>
+            </div>
+            <div class="quickstart-step">
+              <strong>2</strong>
+              <span>Elegi un punto de partida o toca un recorrido sugerido.</span>
+            </div>
+            <div class="quickstart-step">
+              <strong>3</strong>
+              <span>Apreta Generar base y escucha el resultado mirando el mapa.</span>
+            </div>
+          </div>
+        </div>
         <div class="controls">
           <label class="field">
             <span class="label">Tempo</span>
@@ -777,16 +881,16 @@
           </div>
         </div>
         <div class="preset-stack">
-          <p class="status-copy">Recorridos sugeridos</p>
+          <p class="status-copy">Atajo recomendado</p>
           <div class="preset-actions">
             <button class="button secondary" id="load-preset" type="button">Cargar</button>
             <button class="button secondary" id="play-preset" type="button">Tocar</button>
           </div>
-          <p class="subnote" id="preset-note">Carga una ruta armada para comparar maneras de organizar el candombe sin salir de la misma rueda.</p>
+          <p class="subnote" id="preset-note">Usa un recorrido sugerido si no queres ajustar parametros al principio.</p>
         </div>
         <div class="control-foot">
-          <p class="status-copy">Estado de la sesion</p>
-          <p class="status-text" id="status-text">Genera una base para escuchar el toque y mirar su mapa ritmico compas por compas.</p>
+          <p class="status-copy">Lo que sigue</p>
+          <p class="status-text" id="status-text">Genera una base para escuchar el toque y mirar como se ordenan los tambores paso a paso.</p>
           <p class="subnote" id="engine-badge">En espera</p>
         </div>
       </aside>
@@ -796,7 +900,7 @@
           <div class="grid-head">
             <div class="eyebrow">Mapa ritmico</div>
             <h3>Carriles del toque</h3>
-            <p>Vista por tambor sobre rejilla de semicorcheas, con mezcla integrada para estudiar fraseo, llamada y cierre.</p>
+            <p>Cuando generas una base, aca ves cada tambor por separado. Chico sostiene, repique conversa y piano empuja la base.</p>
           </div>
         </div>
         <div class="grid-utility">
@@ -2094,6 +2198,20 @@
       return buffer;
     }
 
+    function hasLoadedSamplesForInstrument(instrument) {
+      if (sampleBuffers.has(instrument)) {
+        return true;
+      }
+
+      for (const variantKey of sampleVariantBuffers.keys()) {
+        if (variantKey.startsWith(`${instrument}:`)) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
     function getSampleBufferForEvent(eventData) {
       if (!eventData) {
         return pickRoundRobinBuffer("chico:default", sampleBuffers.get("chico")) || null;
@@ -2594,9 +2712,9 @@
 
     function playSampleEvent(time, velocity, buffer, destination, instrument, voice = {}, eventData = null) {
       const source = audioCtx.createBufferSource();
+      const gain = audioCtx.createGain();
       const highpass = audioCtx.createBiquadFilter();
       const tone = audioCtx.createBiquadFilter();
-      const gain = audioCtx.createGain();
       const chicoStroke = instrument === "chico" ? getChicoStrokeProfile(eventData) : null;
       const repiqueStroke = instrument === "repique" ? getRepiqueStrokeProfile(eventData) : null;
       const pianoStroke = instrument === "piano" ? getPianoStrokeProfile(eventData) : null;
@@ -2614,12 +2732,35 @@
               : 1;
 
       source.buffer = buffer;
-      source.playbackRate.value =
-        playbackRate
-        * (DRUM_TUNING.sampleRate[instrument] || 1)
-        * (voice.rate || 1)
-        * (instrument === "chico" ? (chicoStroke ? chicoStroke.rate : 1) : 1)
-        * (instrument === "clave" ? (claveStroke ? claveStroke.rate : 1) : 1);
+      source.playbackRate.value = instrument === "chico"
+        ? (voice.rate || 1)
+        : playbackRate
+          * (DRUM_TUNING.sampleRate[instrument] || 1)
+          * (voice.rate || 1)
+          * (instrument === "chico" ? (chicoStroke ? chicoStroke.rate : 1) : 1)
+          * (instrument === "clave" ? (claveStroke ? claveStroke.rate : 1) : 1);
+
+      if (instrument === "chico") {
+        const chicoDecay = Math.min(
+          Math.max((buffer.duration || 0.08) / Math.max(source.playbackRate.value, 0.01), 0.045),
+          0.14
+        );
+
+        shapeGain(
+          gain,
+          time,
+          velocity * 0.92 * (voice.velocityScale || 1),
+          chicoDecay,
+          0.0008,
+          0.003
+        );
+
+        source.connect(gain);
+        connectVoiceOutput(gain, destination, voice);
+        source.start(time);
+        source.stop(time + chicoDecay + 0.02);
+        return;
+      }
 
       highpass.type = "highpass";
       highpass.frequency.setValueAtTime(
@@ -2944,6 +3085,10 @@
         const sampleBuffer = getSampleBufferForEvent(ev);
         if (sampleBuffer) {
           playSampleEvent(voiceTime, voiceVelocity, sampleBuffer, destination, ev.instrument, voiceWithTrackMix, ev);
+          return;
+        }
+
+        if (ev.instrument !== "piano" && hasLoadedSamplesForInstrument(ev.instrument)) {
           return;
         }
 
