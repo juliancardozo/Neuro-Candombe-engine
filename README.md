@@ -10,7 +10,7 @@ Este repositorio contiene un MVP para generar patrones simbolicos de Candombe (`
    ```
 2. Instalar dependencias:
    ```bash
-   pip install -r requirements.txt
+   pip install -r requirements-api.txt
    ```
 3. Entrenar (si ya tenes `.npz` en `data/processed/`):
    ```bash
