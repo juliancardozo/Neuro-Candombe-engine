@@ -1613,6 +1613,16 @@
       return configured.replace(/\/+$/, "");
     }
 
+    function isLocalhost() {
+      return ["localhost", "127.0.0.1"].includes(window.location.hostname);
+    }
+
+    function ensureApiConfigured() {
+      if (!getApiBaseUrl() && !isLocalhost()) {
+        throw new Error("Falta configurar API_BASE_URL en Netlify para conectar el frontend con la API.");
+      }
+    }
+
     function buildApiUrl(path) {
       const normalizedPath = path.startsWith("/") ? path : `/${path}`;
       const baseUrl = getApiBaseUrl();
@@ -3088,6 +3098,7 @@
       setStatus("Generando un nuevo mapa ritmico y preparando el audio.", "Generando...");
 
       try {
+        ensureApiConfigured();
         const params = new URLSearchParams({
           tempo: String(tempo),
           bars: String(bars),
@@ -3099,6 +3110,11 @@
         const res = await fetch(buildApiUrl(`/generate?${params.toString()}`));
         if (!res.ok) {
           throw new Error(`La solicitud fallo con ${res.status}`);
+        }
+
+        const contentType = (res.headers.get("content-type") || "").toLowerCase();
+        if (!contentType.includes("application/json")) {
+          throw new Error("La URL consultada devolvio HTML en lugar de JSON. Revisa API_BASE_URL y el deploy del backend.");
         }
 
         const data = await res.json();
@@ -3158,6 +3174,10 @@
     updateLiveLabels();
     updateSampleStatus();
     updateReplayAvailability();
+    if (!getApiBaseUrl() && !isLocalhost()) {
+      setStatus("Frontend publicado sin API configurada. Define API_BASE_URL en Netlify para habilitar /generate.", "Configura la API");
+      refs.engineBadge.textContent = "Sin API";
+    }
     renderPattern({ bars: 4, step_duration: 0.166, events: [] });
   </script>
 </body>
