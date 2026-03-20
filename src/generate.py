@@ -1,6 +1,9 @@
 import numpy as np
 import torch
-from model import SimpleCandombeTransformer
+try:
+    from .model import SimpleCandombeTransformer
+except ImportError:
+    from model import SimpleCandombeTransformer
 
 VEL_BUCKETS = 4
 N_INSTR = 3

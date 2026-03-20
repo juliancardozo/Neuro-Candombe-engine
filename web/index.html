@@ -1,42 +1,3164 @@
 <!doctype html>
-<html>
+<html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Neuro Candombe - MVP</title>
-  <script src="https://unpkg.com/tone@14.7.77/build/Tone.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Archivo Vivo del Candombe</title>
+  <script src="/runtime-config.js"></script>
+  <style>
+    :root {
+      --bg: #f4fbff;
+      --panel: rgba(255, 255, 255, 0.86);
+      --panel-strong: rgba(255, 255, 255, 0.95);
+      --line: rgba(17, 88, 160, 0.12);
+      --text: #0d2648;
+      --muted: #50719a;
+      --accent: #2a9be8;
+      --accent-deep: #0f5fb5;
+      --gold: #f4c744;
+      --sky-soft: #d9f1ff;
+      --sky-mid: #8bd1ff;
+      --sky-deep: #1177d3;
+      --white-band: rgba(255, 255, 255, 0.94);
+      --chico: #1793e8;
+      --repique: #0a6fb4;
+      --piano: #f2b400;
+      --clave: #f7e9a6;
+      --shadow: 0 30px 80px rgba(15, 95, 181, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Gill Sans", sans-serif;
+      color: var(--text);
+      background: #000;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      border-radius: 999px;
+      filter: blur(18px);
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    body::before {
+      width: 18rem;
+      height: 18rem;
+      left: -5rem;
+      bottom: 12vh;
+      background: transparent;
+    }
+
+    body::after {
+      width: 22rem;
+      height: 22rem;
+      right: -8rem;
+      top: 10vh;
+      background: transparent;
+    }
+
+    .app {
+      width: min(1220px, calc(100vw - 32px));
+      margin: 22px auto;
+      padding: 26px;
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.68);
+      background: linear-gradient(180deg, rgba(255,255,255,0.84), rgba(244,252,255,0.82));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      animation: rise 650ms cubic-bezier(.2,.8,.2,1);
+    }
+
+    .topbar,
+    .hero,
+    .workspace,
+    .stats,
+    .controls,
+    .pattern,
+    .legend,
+    .meta {
+      display: grid;
+      gap: 16px;
+    }
+
+    .topbar {
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      margin-bottom: 22px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .mark {
+      width: 54px;
+      height: 54px;
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.94) 0 12%, rgba(41,155,232,0.14) 12% 24%, rgba(255,255,255,0.94) 24% 36%, rgba(41,155,232,0.14) 36% 48%, rgba(255,255,255,0.94) 48% 60%, rgba(41,155,232,0.14) 60% 72%, rgba(255,255,255,0.94) 72% 84%, rgba(41,155,232,0.14) 84% 100%),
+        linear-gradient(145deg, rgba(255,255,255,0.94), rgba(217,241,255,0.9));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.68);
+      position: relative;
+      border: 1px solid rgba(17, 119, 211, 0.12);
+    }
+
+    .mark::before,
+    .mark::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+    }
+
+    .mark::before {
+      inset: 15px;
+      border: 2px solid rgba(244, 199, 68, 0.6);
+    }
+
+    .mark::after {
+      inset: 17px;
+      background: radial-gradient(circle, rgba(244,199,68,0.98) 0 45%, rgba(226,157,10,0.9) 45% 100%);
+    }
+
+    .eyebrow,
+    .label,
+    .chip,
+    .status-copy {
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    h1, h2, h3, .value {
+      margin: 0;
+      font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+      font-weight: 700;
+    }
+
+    h1 { font-size: clamp(1.5rem, 2vw, 2rem); }
+
+    .topnote {
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.95rem;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.84);
+      border: 1px solid rgba(17, 119, 211, 0.18);
+      color: var(--accent-deep);
+      font-size: 0.82rem;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--gold);
+      box-shadow: 0 0 0 0 rgba(244, 199, 68, 0.36);
+      animation: pulse 2s infinite;
+    }
+
+    .hero {
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      margin-bottom: 18px;
+    }
+
+    .panel {
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.6);
+      background: var(--panel);
+      backdrop-filter: blur(16px);
+    }
+
+    .hero-copy,
+    .hero-card,
+    .control-panel,
+    .grid-panel {
+      padding: 26px;
+    }
+
+    .hero-copy {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-copy::after {
+      content: "";
+      position: absolute;
+      width: 18rem;
+      height: 18rem;
+      right: -6rem;
+      bottom: -7rem;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(244,199,68,0.28), transparent 64%);
+    }
+
+    .hero-copy h2 {
+      font-size: clamp(2.6rem, 5vw, 4.8rem);
+      line-height: 0.92;
+      max-width: 10ch;
+      margin-bottom: 16px;
+    }
+
+    .hero-copy p,
+    .hero-card p,
+    .grid-head p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 24px 0 18px;
+      flex-wrap: wrap;
+    }
+
+    .button {
+      border: none;
+      border-radius: 16px;
+      padding: 15px 22px;
+      font: inherit;
+      font-weight: 700;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--sky-deep), var(--accent));
+      box-shadow: 0 14px 26px rgba(15, 95, 181, 0.22);
+      cursor: pointer;
+      transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+    }
+
+    .button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 18px 30px rgba(15, 95, 181, 0.28);
+    }
+
+    .button:disabled { opacity: 0.72; cursor: wait; }
+
+    .subnote { color: var(--muted); font-size: 0.92rem; }
+
+    .chips {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      max-width: 640px;
+    }
+
+    .chip {
+      padding: 11px 13px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.56);
+      border: 1px solid rgba(69,49,37,0.08);
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+
+    .chip strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1rem;
+      color: var(--text);
+      letter-spacing: normal;
+      text-transform: none;
+    }
+
+    .hero-card {
+      background: linear-gradient(180deg, rgba(255,253,249,0.92), rgba(255,248,241,0.84));
+    }
+
+    .stats {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 22px;
+    }
+
+    .stat {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid rgba(69,49,37,0.08);
+    }
+
+    .stat small {
+      display: block;
+      color: var(--muted);
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .value { font-size: 1.9rem; }
+
+    .workspace {
+      grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .controls {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 18px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field.full { grid-column: 1 / -1; }
+
+    .label {
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 13px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(69,49,37,0.12);
+      background: rgba(255,255,255,0.76);
+      color: var(--text);
+      font: inherit;
+      outline: none;
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: rgba(42,155,232,0.45);
+      box-shadow: 0 0 0 4px rgba(42,155,232,0.12);
+    }
+
+    .range-head,
+    .track-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    input[type="range"] {
+      padding: 0;
+      border: none;
+      background: transparent;
+      accent-color: var(--accent);
+    }
+
+    .pill {
+      min-width: 56px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(42,155,232,0.1);
+      color: var(--accent-deep);
+      text-align: center;
+      font-size: 0.78rem;
+    }
+
+    .control-foot {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .preset-stack,
+    .mixer {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .preset-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .button.secondary {
+      color: var(--accent-deep);
+      background: rgba(42, 155, 232, 0.1);
+      box-shadow: none;
+    }
+
+    .button.secondary:hover:not(:disabled) {
+      box-shadow: none;
+      background: rgba(42, 155, 232, 0.16);
+    }
+
+    .mixer-row {
+      display: grid;
+      grid-template-columns: minmax(0, auto) auto minmax(120px, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.68);
+      border: 1px solid rgba(69,49,37,0.08);
+    }
+
+    .mixer-name {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+    }
+
+    .mixer-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .mute-toggle {
+      border: 1px solid rgba(69,49,37,0.12);
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.78);
+      color: var(--text);
+      font: inherit;
+      cursor: pointer;
+      transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+    }
+
+    .mute-toggle[data-muted="true"] {
+      background: rgba(32, 20, 15, 0.88);
+      color: #fffaf5;
+      border-color: rgba(32, 20, 15, 0.88);
+    }
+
+    .mixer-row[data-muted="true"] {
+      opacity: 0.58;
+    }
+
+    .mixer-value {
+      min-width: 42px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .status-copy {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 0.74rem;
+    }
+
+    .status-text {
+      margin: 0;
+      min-height: 48px;
+      line-height: 1.55;
+    }
+
+    .grid-panel {
+      background: linear-gradient(180deg, rgba(255,254,251,0.92), rgba(250,246,238,0.88));
+    }
+
+    .grid-top {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .grid-head h3 {
+      font-size: 1.45rem;
+      letter-spacing: -0.02em;
+    }
+
+    .grid-head p {
+      max-width: 58ch;
+      font-size: 0.92rem;
+    }
+
+    .grid-utility {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+      gap: 16px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+
+    .legend {
+      grid-auto-flow: row;
+      justify-content: start;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0;
+      border-radius: 0;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .mixer-inline {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+      gap: 10px;
+    }
+
+    .mixer-inline-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .mixer-inline .status-copy {
+      margin: 0;
+    }
+
+    .mixer-tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mixer-inline #mixer {
+      display: grid;
+      gap: 8px;
+    }
+
+    .mixer-inline .mixer-row {
+      grid-template-columns: minmax(0, auto) auto minmax(90px, 1fr) auto;
+      padding: 10px 0;
+      border-radius: 0;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(69,49,37,0.08);
+    }
+
+    .mixer-inline .mixer-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .mixer-inline .mute-toggle {
+      padding: 6px 10px;
+      font-size: 0.82rem;
+      background: rgba(255,255,255,0.6);
+    }
+
+    .track {
+      padding: 10px 0 0;
+      border-radius: 0;
+      background: transparent;
+      border: none;
+      border-top: 1px solid rgba(69,49,37,0.08);
+    }
+
+    .track:first-child {
+      border-top: none;
+      padding-top: 0;
+    }
+
+    .track-meta {
+      color: var(--muted);
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .track-grid {
+      display: grid;
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    .step {
+      aspect-ratio: 1 / 1;
+      min-width: 10px;
+      border-radius: 6px;
+      background: rgba(69,49,37,0.06);
+      border: 1px solid rgba(69,49,37,0.03);
+      position: relative;
+      transition: transform 140ms ease, box-shadow 140ms ease;
+    }
+
+    .step::after {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border-radius: 6px;
+      opacity: 0;
+      transition: opacity 140ms ease;
+    }
+
+    .step[data-active="true"] {
+      transform: translateY(-1px);
+    }
+
+    .step[data-active="true"]::after { opacity: 1; }
+    .step[data-current="true"] { box-shadow: 0 0 0 2px rgba(32,20,15,0.22); }
+    .step.bar-edge { margin-right: 8px; }
+    .step.chico[data-active="true"]::after { background: var(--chico); }
+    .step.repique[data-active="true"]::after { background: var(--repique); }
+    .step.piano[data-active="true"]::after { background: var(--piano); }
+    .step.clave[data-active="true"]::after { background: var(--clave); }
+
+    .meta {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 16px;
+    }
+
+    .meta-card {
+      padding: 16px 18px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.74);
+      border: 1px solid rgba(69,49,37,0.08);
+    }
+
+    .meta-card strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 1rem;
+    }
+
+    .meta-card span {
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.9rem;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(244,199,68,0.36); }
+      70% { box-shadow: 0 0 0 12px rgba(244,199,68,0); }
+      100% { box-shadow: 0 0 0 0 rgba(244,199,68,0); }
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 980px) {
+      .topbar, .hero, .workspace, .stats, .chips, .controls, .meta {
+        grid-template-columns: 1fr;
+      }
+
+      .topnote { text-align: left; }
+      .grid-utility { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .app {
+        width: min(100vw - 18px, 100%);
+        margin: 9px;
+        padding: 18px;
+        border-radius: 24px;
+      }
+
+      .hero-copy, .hero-card, .control-panel, .grid-panel { padding: 18px; }
+      .hero-copy h2 { font-size: 2.8rem; }
+      .mixer-inline .mixer-row {
+        grid-template-columns: minmax(0, auto) auto 1fr auto;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h1>Neuro Candombe - Generate</h1>
-  <label>Tempo: <input id="tempo" value="90" /></label>
-  <label>Bars: <input id="bars" value="4" /></label>
-  <button id="gen">Generate & Play</button>
+  <main class="app">
+    <section class="topbar">
+      <div class="brand">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <div class="eyebrow">App de musicos para musicos</div>
+          <h1>Archivo Vivo del Candombe</h1>
+        </div>
+      </div>
+      <div class="topnote">Exploracion ritmica uruguaya para estudiar formas, llamadas y pulsos del candombe.</div>
+      <div class="status-pill"><span class="dot"></span><span id="top-status">Lista para tocar</span></div>
+    </section>
+
+    <section class="hero">
+      <article class="panel hero-copy">
+        <div class="eyebrow">Patrimonio ritmico en movimiento</div>
+        <h2>Explora el candombe.</h2>
+        <p>Una app para escuchar, comparar y preservar la logica del chico, el repique y el piano desde una mirada de rueda, barrio y memoria uruguaya.</p>
+        <div class="hero-actions">
+          <button class="button" id="gen">Generar y tocar</button>
+          <div class="subnote" id="cta-note">Si no hay modelo cargado, la app arma una base ritmica con reglas musicales.</div>
+        </div>
+        <div class="chips">
+          <div class="chip">Modo<strong>Exploracion</strong></div>
+          <div class="chip">Punto de partida<strong id="chip-seed">Clave madre</strong></div>
+          <div class="chip">Apertura<strong id="chip-temperature">0.90</strong></div>
+          <div class="chip">Carga ritmica<strong id="chip-density">0.55</strong></div>
+        </div>
+      </article>
+
+      <aside class="panel hero-card">
+        <div>
+          <div class="eyebrow">Mapa vivo del toque</div>
+          <h3>Radiografia de la rueda</h3>
+          <p>El mapa de carriles deja ver como conversa cada tambor antes de que el oido termine de separar la frase.</p>
+        </div>
+        <div class="stats">
+          <div class="stat"><small>Tempo</small><div class="value" id="metric-tempo">90</div></div>
+          <div class="stat"><small>Compases</small><div class="value" id="metric-bars">4</div></div>
+          <div class="stat"><small>Golpes</small><div class="value" id="metric-events">0</div></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="workspace">
+      <aside class="panel control-panel">
+        <div class="eyebrow">Mesa de exploracion</div>
+        <h3>Modela el toque</h3>
+        <div class="controls">
+          <label class="field">
+            <span class="label">Tempo</span>
+            <input id="tempo" type="number" min="50" max="220" value="90">
+          </label>
+          <label class="field">
+            <span class="label">Compases</span>
+            <input id="bars" type="number" min="4" max="16" value="4">
+          </label>
+          <label class="field full">
+            <span class="label">Punto de partida</span>
+            <select id="seed">
+              <option value="clave">Clave madre</option>
+              <option value="energia">Desfile cargado</option>
+              <option value="base">Base pareja</option>
+            </select>
+          </label>
+          <label class="field full">
+            <span class="label">Ruta de exploracion</span>
+            <select id="preset-groove"></select>
+          </label>
+          <div class="field full">
+            <div class="range-head">
+              <span class="label">Apertura</span>
+              <span class="pill" id="temperature-value">0.90</span>
+            </div>
+            <input id="temperature" type="range" min="0.3" max="1.8" step="0.05" value="0.9">
+          </div>
+          <div class="field full">
+            <div class="range-head">
+              <span class="label">Carga ritmica</span>
+              <span class="pill" id="density-value">0.55</span>
+            </div>
+            <input id="density" type="range" min="0.05" max="0.95" step="0.05" value="0.55">
+          </div>
+        </div>
+        <div class="preset-stack">
+          <p class="status-copy">Recorridos sugeridos</p>
+          <div class="preset-actions">
+            <button class="button secondary" id="load-preset" type="button">Cargar</button>
+            <button class="button secondary" id="play-preset" type="button">Tocar</button>
+          </div>
+          <p class="subnote" id="preset-note">Carga una ruta armada para comparar maneras de organizar el candombe sin salir de la misma rueda.</p>
+        </div>
+        <div class="control-foot">
+          <p class="status-copy">Estado de la sesion</p>
+          <p class="status-text" id="status-text">Genera una base para escuchar el toque y mirar su mapa ritmico compas por compas.</p>
+          <p class="subnote" id="engine-badge">En espera</p>
+        </div>
+      </aside>
+
+      <section class="panel grid-panel">
+        <div class="grid-top">
+          <div class="grid-head">
+            <div class="eyebrow">Mapa ritmico</div>
+            <h3>Carriles del toque</h3>
+            <p>Vista por tambor sobre rejilla de semicorcheas, con mezcla integrada para estudiar fraseo, llamada y cierre.</p>
+          </div>
+        </div>
+        <div class="grid-utility">
+          <div class="legend">
+            <div class="legend-item"><span class="swatch" style="background: var(--chico)"></span>Chico</div>
+            <div class="legend-item"><span class="swatch" style="background: var(--repique)"></span>Repique</div>
+            <div class="legend-item"><span class="swatch" style="background: var(--piano)"></span>Piano</div>
+            <div class="legend-item"><span class="swatch" style="background: var(--clave)"></span>Clave</div>
+          </div>
+          <div class="mixer mixer-inline">
+            <div class="mixer-inline-head">
+              <p class="status-copy">Mezcla de tambores</p>
+              <div class="mixer-tools">
+                <button class="button secondary" id="replay" type="button">Repetir</button>
+              </div>
+            </div>
+            <div id="mixer"></div>
+          </div>
+        </div>
+        <div class="pattern" id="pattern"></div>
+        <div class="meta">
+          <div class="meta-card">
+            <strong id="meta-engine">Motor por reglas</strong>
+            <span>El backend informa en cada corrida si hay un checkpoint entrenado activo.</span>
+          </div>
+          <div class="meta-card">
+            <strong id="meta-samples">Sintesis activa</strong>
+            <span>Podes dejar muestras reales en <code>web/samples/</code> para reemplazar las voces sinteticas.</span>
+          </div>
+          <div class="meta-card">
+            <strong id="meta-phrase">16 pasos por compas</strong>
+            <span>Los compases quedan cuantizados a semicorcheas para alinear visualizador, scheduler y golpe.</span>
+          </div>
+          <div class="meta-card">
+            <strong id="meta-playback">Sin reproduccion</strong>
+            <span>Genera una frase para ver duracion, capas y forma general del toque.</span>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
 
   <script>
-    const players = new Tone.Players({
-      "chico": "/samples/chico.wav",
-      "repique": "/samples/repique.wav",
-      "piano": "/samples/piano.wav"
-    }).toDestination();
-    document.getElementById("gen").onclick = async () => {
-      const tempo = +document.getElementById("tempo").value;
-      const bars = +document.getElementById("bars").value;
-      const res = await fetch(`/generate?tempo=${tempo}&bars=${bars}`);
-      const data = await res.json();
-      const events = data.events;
-      Tone.Transport.bpm.value = tempo;
-      Tone.Transport.cancel();
-      events.forEach(ev => {
-        const t = ev.time; // seconds
-        Tone.Transport.schedule(time => {
-          const p = players.player(ev.instrument);
-          if (p) {
-            p.volume.value = (ev.velocity/127)*-6; // rough mapping
-            p.start(time);
-          }
-        }, t + 0.1);
-      });
-      Tone.Transport.start();
+    const APP_CONFIG = window.__APP_CONFIG__ || {};
+    const TRACKS = [
+      { key: "chico", label: "Chico", sampleCandidates: ["/samples/chico.wav", "/samples/chico.ogg", "/samples/chico.mp3"] },
+      { key: "repique", label: "Repique", sampleCandidates: ["/samples/repique.wav", "/samples/repique.ogg", "/samples/repique.mp3"] },
+      { key: "piano", label: "Piano", sampleCandidates: ["/samples/piano.wav", "/samples/piano.ogg", "/samples/piano.mp3"] },
+      { key: "clave", label: "Clave", sampleCandidates: ["/samples/clave.wav", "/samples/clave.ogg", "/samples/clave.mp3"] }
+    ];
+
+    const ACTIVE_VOICES = {
+      label: "Tambores individuales",
+      description: "1 chico, 1 repique, 1 piano y 1 clave",
+      voices: {
+        chico: [
+          { pan: 0.0, offsetMs: 0, mix: 1.0, velocityScale: 1.0, rate: 1.0, detune: 0, filterScale: 1.0 }
+        ],
+        repique: [
+          { pan: 0.0, offsetMs: 0, mix: 1.0, velocityScale: 1.0, rate: 1.0, detune: 0, filterScale: 1.0 }
+        ],
+        piano: [
+          { pan: 0.0, offsetMs: 0, mix: 1.0, velocityScale: 1.0, rate: 1.0, detune: 0, filterScale: 1.0 }
+        ],
+        clave: [
+          { pan: 0.0, offsetMs: 0, mix: 0.92, velocityScale: 0.94, rate: 1.0, detune: 0, filterScale: 1.0 }
+        ]
+      }
     };
+
+    const PRESET_PATTERN_LIBRARY = {
+      montevideo_variacion_a: {
+        label: "Montevideo A",
+        note: "Ciclo de un compas repetido en 4 barras, con chico estable, piano con apoyo y repique conversado con aire.",
+        bars: 4,
+        tracks: {
+          chico: [
+            null,
+            { velocity: 98, offset_ms: -2.4, hit_type: "mano" },
+            { velocity: 82, offset_ms: 1.8, hit_type: "palo" },
+            { velocity: 84, offset_ms: -1.2, hit_type: "palo" },
+            null,
+            { velocity: 100, offset_ms: -3.0, hit_type: "mano" },
+            { velocity: 80, offset_ms: 2.2, hit_type: "palo" },
+            { velocity: 83, offset_ms: -0.8, hit_type: "palo" },
+            null,
+            { velocity: 99, offset_ms: -1.7, hit_type: "mano" },
+            { velocity: 81, offset_ms: 2.6, hit_type: "palo" },
+            { velocity: 85, offset_ms: -1.4, hit_type: "palo" },
+            null,
+            { velocity: 101, offset_ms: -2.1, hit_type: "mano" },
+            { velocity: 83, offset_ms: 1.4, hit_type: "palo" },
+            { velocity: 86, offset_ms: -0.9, hit_type: "palo" }
+          ],
+          piano: [
+            { velocity: 118, offset_ms: -4.0, hit_type: "bass_open" },
+            null,
+            { velocity: 44, offset_ms: 6.3, hit_type: "stick_closed" },
+            { velocity: 92, offset_ms: -7.8, hit_type: "bass_muted" },
+            null,
+            null,
+            { velocity: 39, offset_ms: 5.1, hit_type: "stick_closed" },
+            null,
+            { velocity: 120, offset_ms: -2.7, hit_type: "bass_open" },
+            null,
+            { velocity: 47, offset_ms: 7.2, hit_type: "stick_open" },
+            { velocity: 95, offset_ms: -6.1, hit_type: "bass_muted" },
+            null,
+            null,
+            { velocity: 42, offset_ms: 4.8, hit_type: "stick_closed" },
+            null
+          ],
+          repique: [
+            null,
+            { velocity: 88, offset_ms: -11.0, hit_type: "talk_open" },
+            null,
+            { velocity: 72, offset_ms: 14.6, hit_type: "talk_support" },
+            null,
+            { velocity: 97, offset_ms: -6.8, hit_type: "talk_answer" },
+            { velocity: 58, offset_ms: 9.4, hit_type: "talk_support" },
+            null,
+            { velocity: 106, offset_ms: -13.5, hit_type: "talk_open" },
+            null,
+            { velocity: 64, offset_ms: 16.2, hit_type: "talk_support" },
+            { velocity: 91, offset_ms: -8.1, hit_type: "talk_close" },
+            null,
+            { velocity: 83, offset_ms: 10.7, hit_type: "call_support" },
+            { velocity: 112, offset_ms: -4.9, hit_type: "call_open" },
+            null
+          ]
+        }
+      },
+      montevideo_variacion_b: {
+        label: "Montevideo B",
+        note: "Otra celula de Montevideo con piano mas escalonado y repique mas espacioso antes del remate.",
+        bars: 4,
+        tracks: {
+          chico: [
+            null,
+            { velocity: 97, offset_ms: -1.8, hit_type: "mano" },
+            { velocity: 80, offset_ms: 2.1, hit_type: "palo" },
+            { velocity: 85, offset_ms: -1.0, hit_type: "palo" },
+            null,
+            { velocity: 99, offset_ms: -2.7, hit_type: "mano" },
+            { velocity: 81, offset_ms: 1.5, hit_type: "palo" },
+            { velocity: 84, offset_ms: -0.7, hit_type: "palo" },
+            null,
+            { velocity: 101, offset_ms: -2.2, hit_type: "mano" },
+            { velocity: 82, offset_ms: 2.4, hit_type: "palo" },
+            { velocity: 86, offset_ms: -1.3, hit_type: "palo" },
+            null,
+            { velocity: 100, offset_ms: -1.6, hit_type: "mano" },
+            { velocity: 84, offset_ms: 1.8, hit_type: "palo" },
+            { velocity: 87, offset_ms: -0.6, hit_type: "palo" }
+          ],
+          piano: [
+            { velocity: 121, offset_ms: -5.6, hit_type: "bass_open" },
+            null,
+            { velocity: 41, offset_ms: 4.9, hit_type: "stick_closed" },
+            null,
+            { velocity: 86, offset_ms: -7.1, hit_type: "bass_muted" },
+            null,
+            { velocity: 38, offset_ms: 6.8, hit_type: "stick_closed" },
+            null,
+            { velocity: 116, offset_ms: -3.1, hit_type: "bass_open" },
+            null,
+            { velocity: 46, offset_ms: 5.7, hit_type: "stick_open" },
+            null,
+            { velocity: 91, offset_ms: -8.3, hit_type: "bass_muted" },
+            null,
+            { velocity: 43, offset_ms: 7.5, hit_type: "stick_closed" },
+            { velocity: 62, offset_ms: -2.0, hit_type: "stick_closed" }
+          ],
+          repique: [
+            { velocity: 82, offset_ms: -9.7, hit_type: "talk_open" },
+            null,
+            { velocity: 61, offset_ms: 12.9, hit_type: "talk_support" },
+            null,
+            { velocity: 94, offset_ms: -15.8, hit_type: "talk_answer" },
+            { velocity: 56, offset_ms: 8.6, hit_type: "talk_support" },
+            null,
+            { velocity: 74, offset_ms: -5.1, hit_type: "talk_close" },
+            null,
+            { velocity: 109, offset_ms: 17.4, hit_type: "talk_open" },
+            null,
+            { velocity: 67, offset_ms: -11.6, hit_type: "talk_support" },
+            { velocity: 89, offset_ms: 6.2, hit_type: "call_support" },
+            null,
+            { velocity: 115, offset_ms: -3.8, hit_type: "call_open" },
+            { velocity: 71, offset_ms: 14.1, hit_type: "call_tail" }
+          ]
+        }
+      },
+      repique_anclado_a: {
+        label: "Repique anclado A",
+        note: "Respuesta de repique laid-back, con apoyos cortos y cierre claro sin perder la referencia del chico.",
+        bars: 4,
+        tracks: {
+          chico: [
+            null,
+            { velocity: 98, offset_ms: -2.4, hit_type: "mano" },
+            { velocity: 82, offset_ms: 1.8, hit_type: "palo" },
+            { velocity: 84, offset_ms: -1.2, hit_type: "palo" },
+            null,
+            { velocity: 100, offset_ms: -3.0, hit_type: "mano" },
+            { velocity: 80, offset_ms: 2.2, hit_type: "palo" },
+            { velocity: 83, offset_ms: -0.8, hit_type: "palo" },
+            null,
+            { velocity: 99, offset_ms: -1.7, hit_type: "mano" },
+            { velocity: 81, offset_ms: 2.6, hit_type: "palo" },
+            { velocity: 85, offset_ms: -1.4, hit_type: "palo" },
+            null,
+            { velocity: 101, offset_ms: -2.1, hit_type: "mano" },
+            { velocity: 83, offset_ms: 1.4, hit_type: "palo" },
+            { velocity: 86, offset_ms: -0.9, hit_type: "palo" }
+          ],
+          piano: [
+            { velocity: 118, offset_ms: -4.0, hit_type: "bass_open" },
+            null,
+            { velocity: 44, offset_ms: 6.3, hit_type: "stick_closed" },
+            { velocity: 92, offset_ms: -7.8, hit_type: "bass_muted" },
+            null,
+            null,
+            { velocity: 39, offset_ms: 5.1, hit_type: "stick_closed" },
+            null,
+            { velocity: 120, offset_ms: -2.7, hit_type: "bass_open" },
+            null,
+            { velocity: 47, offset_ms: 7.2, hit_type: "stick_open" },
+            { velocity: 95, offset_ms: -6.1, hit_type: "bass_muted" },
+            null,
+            null,
+            { velocity: 42, offset_ms: 4.8, hit_type: "stick_closed" },
+            null
+          ],
+          repique: [
+            null,
+            { velocity: 84, offset_ms: 4.5, hit_type: "talk_open" },
+            null,
+            { velocity: 62, offset_ms: 1.8, hit_type: "talk_support" },
+            { velocity: 96, offset_ms: 0.9, hit_type: "talk_answer" },
+            null,
+            { velocity: 54, offset_ms: 5.2, hit_type: "talk_support" },
+            null,
+            null,
+            { velocity: 102, offset_ms: 6.4, hit_type: "talk_open" },
+            null,
+            { velocity: 76, offset_ms: 2.6, hit_type: "talk_close" },
+            { velocity: 90, offset_ms: 1.1, hit_type: "call_support" },
+            null,
+            { velocity: 114, offset_ms: 7.8, hit_type: "call_open" },
+            null
+          ]
+        }
+      },
+      repique_anclado_b: {
+        label: "Repique anclado B",
+        note: "Frase mas abierta, con respuesta sobre el peso del piano y remate final bien apoyado al pulso.",
+        bars: 4,
+        tracks: {
+          chico: [
+            null,
+            { velocity: 98, offset_ms: -2.4, hit_type: "mano" },
+            { velocity: 82, offset_ms: 1.8, hit_type: "palo" },
+            { velocity: 84, offset_ms: -1.2, hit_type: "palo" },
+            null,
+            { velocity: 100, offset_ms: -3.0, hit_type: "mano" },
+            { velocity: 80, offset_ms: 2.2, hit_type: "palo" },
+            { velocity: 83, offset_ms: -0.8, hit_type: "palo" },
+            null,
+            { velocity: 99, offset_ms: -1.7, hit_type: "mano" },
+            { velocity: 81, offset_ms: 2.6, hit_type: "palo" },
+            { velocity: 85, offset_ms: -1.4, hit_type: "palo" },
+            null,
+            { velocity: 101, offset_ms: -2.1, hit_type: "mano" },
+            { velocity: 83, offset_ms: 1.4, hit_type: "palo" },
+            { velocity: 86, offset_ms: -0.9, hit_type: "palo" }
+          ],
+          piano: [
+            { velocity: 121, offset_ms: -5.6, hit_type: "bass_open" },
+            null,
+            { velocity: 41, offset_ms: 4.9, hit_type: "stick_closed" },
+            null,
+            { velocity: 86, offset_ms: -7.1, hit_type: "bass_muted" },
+            null,
+            { velocity: 38, offset_ms: 6.8, hit_type: "stick_closed" },
+            null,
+            { velocity: 116, offset_ms: -3.1, hit_type: "bass_open" },
+            null,
+            { velocity: 46, offset_ms: 5.7, hit_type: "stick_open" },
+            null,
+            { velocity: 91, offset_ms: -8.3, hit_type: "bass_muted" },
+            null,
+            { velocity: 43, offset_ms: 7.5, hit_type: "stick_closed" },
+            { velocity: 62, offset_ms: -2.0, hit_type: "stick_closed" }
+          ],
+          repique: [
+            { velocity: 78, offset_ms: 0.6, hit_type: "talk_open" },
+            null,
+            { velocity: 48, offset_ms: 5.4, hit_type: "talk_support" },
+            null,
+            { velocity: 98, offset_ms: 1.2, hit_type: "talk_answer" },
+            { velocity: 58, offset_ms: 6.3, hit_type: "talk_support" },
+            null,
+            { velocity: 74, offset_ms: 2.1, hit_type: "talk_close" },
+            null,
+            { velocity: 108, offset_ms: 7.1, hit_type: "talk_open" },
+            null,
+            null,
+            { velocity: 86, offset_ms: 0.8, hit_type: "call_support" },
+            null,
+            { velocity: 116, offset_ms: 8.9, hit_type: "call_open" },
+            { velocity: 52, offset_ms: 3.0, hit_type: "call_tail" }
+          ]
+        }
+      },
+      repique_anclado_c: {
+        label: "Repique anclado C",
+        note: "Version mas conversada en grupos de cuatro, con fantasmas y acentos que vuelven a anclar cada pulso.",
+        bars: 4,
+        tracks: {
+          chico: [
+            null,
+            { velocity: 97, offset_ms: -1.8, hit_type: "mano" },
+            { velocity: 80, offset_ms: 2.1, hit_type: "palo" },
+            { velocity: 85, offset_ms: -1.0, hit_type: "palo" },
+            null,
+            { velocity: 99, offset_ms: -2.7, hit_type: "mano" },
+            { velocity: 81, offset_ms: 1.5, hit_type: "palo" },
+            { velocity: 84, offset_ms: -0.7, hit_type: "palo" },
+            null,
+            { velocity: 101, offset_ms: -2.2, hit_type: "mano" },
+            { velocity: 82, offset_ms: 2.4, hit_type: "palo" },
+            { velocity: 86, offset_ms: -1.3, hit_type: "palo" },
+            null,
+            { velocity: 100, offset_ms: -1.6, hit_type: "mano" },
+            { velocity: 84, offset_ms: 1.8, hit_type: "palo" },
+            { velocity: 87, offset_ms: -0.6, hit_type: "palo" }
+          ],
+          piano: [
+            { velocity: 118, offset_ms: -4.0, hit_type: "bass_open" },
+            null,
+            { velocity: 44, offset_ms: 6.3, hit_type: "stick_closed" },
+            { velocity: 92, offset_ms: -7.8, hit_type: "bass_muted" },
+            null,
+            null,
+            { velocity: 39, offset_ms: 5.1, hit_type: "stick_closed" },
+            null,
+            { velocity: 120, offset_ms: -2.7, hit_type: "bass_open" },
+            null,
+            { velocity: 47, offset_ms: 7.2, hit_type: "stick_open" },
+            { velocity: 95, offset_ms: -6.1, hit_type: "bass_muted" },
+            null,
+            null,
+            { velocity: 42, offset_ms: 4.8, hit_type: "stick_closed" },
+            null
+          ],
+          repique: [
+            null,
+            { velocity: 82, offset_ms: 3.8, hit_type: "talk_open" },
+            { velocity: 46, offset_ms: 6.1, hit_type: "talk_support" },
+            null,
+            { velocity: 94, offset_ms: 0.7, hit_type: "talk_answer" },
+            null,
+            { velocity: 64, offset_ms: 4.9, hit_type: "talk_support" },
+            { velocity: 72, offset_ms: 2.4, hit_type: "talk_close" },
+            null,
+            { velocity: 104, offset_ms: 6.8, hit_type: "talk_open" },
+            null,
+            { velocity: 60, offset_ms: 2.2, hit_type: "talk_support" },
+            { velocity: 88, offset_ms: 0.9, hit_type: "call_support" },
+            null,
+            { velocity: 118, offset_ms: 8.2, hit_type: "call_open" },
+            null
+          ]
+        }
+      }
+    };
+
+    function cloneStepPattern(pattern) {
+      return (pattern || []).map((step) => (step ? { ...step } : null));
+    }
+
+    const FIXED_CHICO_PATTERN = [
+      null,
+      { velocity: 95, offset_ms: 0, hit_type: "mano" },
+      { velocity: 63, offset_ms: 0, hit_type: "palo" },
+      { velocity: 63, offset_ms: 0, hit_type: "palo" },
+      null,
+      { velocity: 95, offset_ms: 0, hit_type: "mano" },
+      { velocity: 63, offset_ms: 0, hit_type: "palo" },
+      { velocity: 63, offset_ms: 0, hit_type: "palo" },
+      null,
+      { velocity: 95, offset_ms: 0, hit_type: "mano" },
+      { velocity: 63, offset_ms: 0, hit_type: "palo" },
+      { velocity: 63, offset_ms: 0, hit_type: "palo" },
+      null,
+      { velocity: 95, offset_ms: 0, hit_type: "mano" },
+      { velocity: 63, offset_ms: 0, hit_type: "palo" },
+      { velocity: 63, offset_ms: 0, hit_type: "palo" }
+    ];
+
+    const PRESET_CHICO_A = cloneStepPattern(FIXED_CHICO_PATTERN);
+    const PRESET_CHICO_B = cloneStepPattern(FIXED_CHICO_PATTERN);
+    const PRESET_REPIQUE_A = cloneStepPattern(PRESET_PATTERN_LIBRARY.repique_anclado_a.tracks.repique);
+    const PRESET_REPIQUE_B = cloneStepPattern(PRESET_PATTERN_LIBRARY.repique_anclado_b.tracks.repique);
+    const PRESET_REPIQUE_C = cloneStepPattern(PRESET_PATTERN_LIBRARY.repique_anclado_c.tracks.repique);
+
+    Object.assign(PRESET_PATTERN_LIBRARY, {
+      piano_estructural_a: {
+        label: "Piano estructural A",
+        note: "Piano grave y cíclico, con dos apoyos fuertes y una respuesta corta para estudiar el suelo del toque.",
+        bars: 4,
+        tracks: {
+          chico: cloneStepPattern(PRESET_CHICO_A),
+          repique: cloneStepPattern(PRESET_REPIQUE_A),
+          piano: [
+            { velocity: 120, offset_ms: -0.8, hit_type: "bass_open" },
+            null,
+            null,
+            { velocity: 86, offset_ms: 1.9, hit_type: "bass_muted" },
+            null,
+            null,
+            null,
+            null,
+            { velocity: 118, offset_ms: -0.6, hit_type: "bass_open" },
+            null,
+            { velocity: 58, offset_ms: 3.2, hit_type: "stick_open" },
+            { velocity: 92, offset_ms: 2.1, hit_type: "bass_muted" },
+            null,
+            null,
+            null,
+            null
+          ]
+        }
+      },
+      piano_estructural_b: {
+        label: "Piano estructural B",
+        note: "Motivo repetitivo con aire y un palo final corto, pensado para sostener la rueda sin recargarla.",
+        bars: 4,
+        tracks: {
+          chico: cloneStepPattern(PRESET_CHICO_A),
+          repique: cloneStepPattern(PRESET_REPIQUE_B),
+          piano: [
+            { velocity: 117, offset_ms: -1.1, hit_type: "bass_open" },
+            null,
+            null,
+            { velocity: 84, offset_ms: 1.6, hit_type: "bass_muted" },
+            null,
+            null,
+            null,
+            null,
+            { velocity: 115, offset_ms: -0.7, hit_type: "bass_open" },
+            null,
+            null,
+            { velocity: 90, offset_ms: 2.4, hit_type: "bass_muted" },
+            null,
+            null,
+            { velocity: 56, offset_ms: 3.5, hit_type: "stick_closed" },
+            null
+          ]
+        }
+      },
+      piano_estructural_c: {
+        label: "Piano estructural C",
+        note: "Version con fantasma adelantado despues del segundo apoyo para dar mas movimiento sin perder peso.",
+        bars: 4,
+        tracks: {
+          chico: cloneStepPattern(PRESET_CHICO_B),
+          repique: cloneStepPattern(PRESET_REPIQUE_C),
+          piano: [
+            { velocity: 119, offset_ms: -0.9, hit_type: "bass_open" },
+            null,
+            null,
+            { velocity: 88, offset_ms: 1.8, hit_type: "bass_muted" },
+            null,
+            null,
+            null,
+            null,
+            { velocity: 116, offset_ms: -0.5, hit_type: "bass_open" },
+            { velocity: 55, offset_ms: 2.7, hit_type: "stick_closed" },
+            null,
+            { velocity: 94, offset_ms: 2.0, hit_type: "bass_muted" },
+            null,
+            null,
+            null,
+            null
+          ]
+        }
+      },
+      piano_clave_a: {
+        label: "Piano clave A",
+        note: "Piano anclado a la clave de cinco golpes, con anticipacion corta y contraste claro entre apoyo y fantasma.",
+        bars: 4,
+        tracks: {
+          chico: cloneStepPattern(PRESET_CHICO_A),
+          repique: cloneStepPattern(PRESET_REPIQUE_A),
+          piano: [
+            { velocity: 118, offset_ms: -1.0, hit_type: "bass_open" },
+            null,
+            null,
+            { velocity: 92, offset_ms: 1.8, hit_type: "bass_muted" },
+            null,
+            { velocity: 58, offset_ms: 3.4, hit_type: "stick_closed" },
+            { velocity: 104, offset_ms: -0.6, hit_type: "bass_open" },
+            null,
+            null,
+            null,
+            { velocity: 116, offset_ms: 0.9, hit_type: "bass_open" },
+            null,
+            { velocity: 98, offset_ms: 1.2, hit_type: "bass_muted" },
+            { velocity: 60, offset_ms: 3.0, hit_type: "stick_open" },
+            null,
+            null
+          ]
+        }
+      },
+      piano_clave_b: {
+        label: "Piano clave B",
+        note: "Lectura mas recortada de la clave, con anticipaciones medidas y golpes fuertes apoyados sobre los acentos estructurales.",
+        bars: 4,
+        tracks: {
+          chico: cloneStepPattern(PRESET_CHICO_A),
+          repique: cloneStepPattern(PRESET_REPIQUE_B),
+          piano: [
+            { velocity: 120, offset_ms: -0.8, hit_type: "bass_open" },
+            null,
+            { velocity: 56, offset_ms: 2.6, hit_type: "stick_closed" },
+            { velocity: 88, offset_ms: 1.5, hit_type: "bass_muted" },
+            null,
+            null,
+            { velocity: 102, offset_ms: -0.4, hit_type: "bass_open" },
+            null,
+            null,
+            { velocity: 59, offset_ms: 3.8, hit_type: "stick_open" },
+            { velocity: 114, offset_ms: 0.7, hit_type: "bass_open" },
+            null,
+            { velocity: 96, offset_ms: 1.0, hit_type: "bass_muted" },
+            null,
+            { velocity: 57, offset_ms: 2.9, hit_type: "stick_closed" },
+            null
+          ]
+        }
+      },
+      piano_clave_c: {
+        label: "Piano clave C",
+        note: "Clave reforzada desde el cuerpo del piano, con dos fantasmas de arrastre para empujar la vuelta del compas.",
+        bars: 4,
+        tracks: {
+          chico: cloneStepPattern(PRESET_CHICO_B),
+          repique: cloneStepPattern(PRESET_REPIQUE_C),
+          piano: [
+            { velocity: 117, offset_ms: -1.1, hit_type: "bass_open" },
+            null,
+            null,
+            { velocity: 90, offset_ms: 1.6, hit_type: "bass_muted" },
+            { velocity: 55, offset_ms: 2.8, hit_type: "stick_closed" },
+            null,
+            { velocity: 100, offset_ms: -0.5, hit_type: "bass_open" },
+            null,
+            null,
+            null,
+            { velocity: 115, offset_ms: 0.8, hit_type: "bass_open" },
+            { velocity: 58, offset_ms: 3.5, hit_type: "stick_open" },
+            { velocity: 94, offset_ms: 1.1, hit_type: "bass_muted" },
+            null,
+            null,
+            null
+          ]
+        }
+      }
+    });
+
+    const GROOVE_PRESETS = [
+      {
+        id: "piano_clave_a",
+        label: "Piano clave A",
+        note: PRESET_PATTERN_LIBRARY.piano_clave_a.note,
+        tempo: 92,
+        bars: 4,
+        seed: "clave",
+        temperature: 0.78,
+        density: 0.48,
+        patternId: "piano_clave_a"
+      },
+      {
+        id: "piano_clave_b",
+        label: "Piano clave B",
+        note: PRESET_PATTERN_LIBRARY.piano_clave_b.note,
+        tempo: 94,
+        bars: 4,
+        seed: "clave",
+        temperature: 0.8,
+        density: 0.5,
+        patternId: "piano_clave_b"
+      },
+      {
+        id: "piano_clave_c",
+        label: "Piano clave C",
+        note: PRESET_PATTERN_LIBRARY.piano_clave_c.note,
+        tempo: 90,
+        bars: 4,
+        seed: "clave",
+        temperature: 0.76,
+        density: 0.5,
+        patternId: "piano_clave_c"
+      },
+      {
+        id: "piano_estructural_a",
+        label: "Piano A",
+        note: PRESET_PATTERN_LIBRARY.piano_estructural_a.note,
+        tempo: 90,
+        bars: 4,
+        seed: "base",
+        temperature: 0.74,
+        density: 0.42,
+        patternId: "piano_estructural_a"
+      },
+      {
+        id: "piano_estructural_b",
+        label: "Piano B",
+        note: PRESET_PATTERN_LIBRARY.piano_estructural_b.note,
+        tempo: 92,
+        bars: 4,
+        seed: "base",
+        temperature: 0.72,
+        density: 0.4,
+        patternId: "piano_estructural_b"
+      },
+      {
+        id: "piano_estructural_c",
+        label: "Piano C",
+        note: PRESET_PATTERN_LIBRARY.piano_estructural_c.note,
+        tempo: 94,
+        bars: 4,
+        seed: "base",
+        temperature: 0.76,
+        density: 0.42,
+        patternId: "piano_estructural_c"
+      },
+      {
+        id: "repique_anclado_a",
+        label: "Repique A",
+        note: PRESET_PATTERN_LIBRARY.repique_anclado_a.note,
+        tempo: 92,
+        bars: 4,
+        seed: "clave",
+        temperature: 0.78,
+        density: 0.52,
+        patternId: "repique_anclado_a"
+      },
+      {
+        id: "repique_anclado_b",
+        label: "Repique B",
+        note: PRESET_PATTERN_LIBRARY.repique_anclado_b.note,
+        tempo: 96,
+        bars: 4,
+        seed: "base",
+        temperature: 0.82,
+        density: 0.5,
+        patternId: "repique_anclado_b"
+      },
+      {
+        id: "repique_anclado_c",
+        label: "Repique C",
+        note: PRESET_PATTERN_LIBRARY.repique_anclado_c.note,
+        tempo: 94,
+        bars: 4,
+        seed: "clave",
+        temperature: 0.8,
+        density: 0.48,
+        patternId: "repique_anclado_c"
+      },
+      {
+        id: "montevideo_variacion_a",
+        label: "Montevideo A",
+        note: PRESET_PATTERN_LIBRARY.montevideo_variacion_a.note,
+        tempo: 92,
+        bars: 4,
+        seed: "clave",
+        temperature: 0.78,
+        density: 0.56,
+        patternId: "montevideo_variacion_a"
+      },
+      {
+        id: "montevideo_variacion_b",
+        label: "Montevideo B",
+        note: PRESET_PATTERN_LIBRARY.montevideo_variacion_b.note,
+        tempo: 96,
+        bars: 4,
+        seed: "base",
+        temperature: 0.84,
+        density: 0.52,
+        patternId: "montevideo_variacion_b"
+      },
+      {
+        id: "llamada_clasica",
+        label: "Llamada de barrio",
+        note: "Base pareja para abrir rueda y escuchar el pulso sin tapar la conversacion entre tambores.",
+        tempo: 92,
+        bars: 4,
+        seed: "clave",
+        temperature: 0.8,
+        density: 0.58
+      },
+      {
+        id: "ansina_calma",
+        label: "Ansina sereno",
+        note: "Mas aire en el repique y un espacio mas amplio para sentir el peso del chico y del piano.",
+        tempo: 88,
+        bars: 4,
+        seed: "base",
+        temperature: 0.72,
+        density: 0.48
+      },
+      {
+        id: "desfile_tenso",
+        label: "Desfile Sur",
+        note: "Mas energia y densidad para probar una rueda mas apretada y de avance sostenido.",
+        tempo: 100,
+        bars: 8,
+        seed: "energia",
+        temperature: 0.98,
+        density: 0.68
+      },
+      {
+        id: "solo_esqueleto",
+        label: "Esqueleto del toque",
+        note: "Version mas seca y directa para estudiar la arquitectura de cada tambor por separado.",
+        tempo: 90,
+        bars: 4,
+        seed: "clave",
+        temperature: 0.7,
+        density: 0.42
+      }
+    ];
+
+    const refs = {
+      gen: document.getElementById("gen"),
+      tempo: document.getElementById("tempo"),
+      bars: document.getElementById("bars"),
+      seed: document.getElementById("seed"),
+      presetGroove: document.getElementById("preset-groove"),
+      temperature: document.getElementById("temperature"),
+      density: document.getElementById("density"),
+      loadPreset: document.getElementById("load-preset"),
+      playPreset: document.getElementById("play-preset"),
+      replay: document.getElementById("replay"),
+      presetNote: document.getElementById("preset-note"),
+      mixer: document.getElementById("mixer"),
+      temperatureValue: document.getElementById("temperature-value"),
+      densityValue: document.getElementById("density-value"),
+      chipSeed: document.getElementById("chip-seed"),
+      chipTemperature: document.getElementById("chip-temperature"),
+      chipDensity: document.getElementById("chip-density"),
+      metricTempo: document.getElementById("metric-tempo"),
+      metricBars: document.getElementById("metric-bars"),
+      metricEvents: document.getElementById("metric-events"),
+      statusText: document.getElementById("status-text"),
+      topStatus: document.getElementById("top-status"),
+      ctaNote: document.getElementById("cta-note"),
+      engineBadge: document.getElementById("engine-badge"),
+      pattern: document.getElementById("pattern"),
+      metaEngine: document.getElementById("meta-engine"),
+      metaSamples: document.getElementById("meta-samples"),
+      metaPhrase: document.getElementById("meta-phrase"),
+      metaPlayback: document.getElementById("meta-playback")
+    };
+
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    const DRUM_TUNING = {
+      rootHz: 73.42,
+      piano: {
+        fundamental: 98.0,
+        shell: 146.83,
+        skin: 196.0,
+        strike: 392.0
+      },
+      repique: {
+        fundamental: 196.0,
+        shell: 293.66,
+        skin: 392.0,
+        strike: 783.99
+      },
+      chico: {
+        fundamental: 392.0,
+        shell: 587.33,
+        skin: 783.99,
+        strike: 1174.66
+      },
+      sampleRate: {
+        piano: 1.0,
+        repique: 1.0,
+        chico: 1.334
+      }
+    };
+    let audioCtx = null;
+    let noiseBuffer = null;
+    let currentMaster = null;
+    let playheadFrame = null;
+    let lastGeneratedData = null;
+    const sampleBuffers = new Map();
+    const sampleVariantBuffers = new Map();
+    const sampleRoundRobinState = new Map();
+    let sampleManifest = null;
+    let sampleLoadPromise = null;
+    const trackState = Object.fromEntries(TRACKS.map((track) => [track.key, { muted: false, volume: 1 }]));
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function getApiBaseUrl() {
+      const configured = typeof APP_CONFIG.apiBaseUrl === "string" ? APP_CONFIG.apiBaseUrl.trim() : "";
+      return configured.replace(/\/+$/, "");
+    }
+
+    function buildApiUrl(path) {
+      const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+      const baseUrl = getApiBaseUrl();
+      return baseUrl ? `${baseUrl}${normalizedPath}` : normalizedPath;
+    }
+
+    function normalizeSampleSources(entry) {
+      if (Array.isArray(entry)) {
+        return entry.filter((item) => typeof item === "string" && item);
+      }
+
+      if (typeof entry === "string" && entry) {
+        return [entry];
+      }
+
+      if (entry && typeof entry === "object" && Array.isArray(entry.sources)) {
+        return entry.sources.filter((item) => typeof item === "string" && item);
+      }
+
+      return [];
+    }
+
+    function getGroovePreset() {
+      return GROOVE_PRESETS.find((preset) => preset.id === refs.presetGroove.value) || GROOVE_PRESETS[0];
+    }
+
+    function updateLiveLabels() {
+      const temperature = Number(refs.temperature.value).toFixed(2);
+      const density = Number(refs.density.value).toFixed(2);
+      refs.temperatureValue.textContent = temperature;
+      refs.densityValue.textContent = density;
+      refs.chipTemperature.textContent = temperature;
+      refs.chipDensity.textContent = density;
+      refs.chipSeed.textContent = refs.seed.options[refs.seed.selectedIndex].text;
+      refs.metricTempo.textContent = refs.tempo.value || "90";
+      refs.metricBars.textContent = refs.bars.value || "4";
+    }
+
+    function setStatus(message, topMessage) {
+      refs.statusText.textContent = message;
+      refs.topStatus.textContent = topMessage || message;
+    }
+
+    function preparePlaybackData(data) {
+      if (!data || data._prepared) {
+        return data;
+      }
+
+      const normalizedEvents = [];
+      const nonChicoEvents = [];
+      (data.events || []).forEach((event) => {
+        const stepIndex = typeof event.step === "number"
+          ? event.step
+          : Math.round((event.time || 0) / (data.step_duration || 1));
+
+        if (event.instrument === "repique" && event.hit_type === "clave") {
+          nonChicoEvents.push({ ...event, instrument: "clave", step: stepIndex });
+          return;
+        }
+
+        if (event.instrument === "chico") {
+          return;
+        }
+
+        nonChicoEvents.push({
+          ...event,
+          step: stepIndex
+        });
+      });
+
+      const bars = Math.max(1, Number(data.bars) || 1);
+      const stepDuration = Number(data.step_duration) || 0.166;
+
+      for (let barIndex = 0; barIndex < bars; barIndex += 1) {
+        const section = sectionForBar(barIndex, bars);
+        FIXED_CHICO_PATTERN.forEach((stepData, stepInBar) => {
+          if (!stepData || !stepData.velocity) {
+            return;
+          }
+
+          const absoluteStep = (barIndex * 16) + stepInBar;
+          normalizedEvents.push({
+            instrument: "chico",
+            velocity: clamp(Math.round(stepData.velocity), 1, 127),
+            time: absoluteStep * stepDuration,
+            offset_ms: clamp(stepData.offset_ms || 0, -5, 5),
+            step: absoluteStep,
+            section,
+            hit_type: stepData.hit_type || "stroke"
+          });
+        });
+      }
+
+      normalizedEvents.push(...nonChicoEvents);
+      normalizedEvents.sort((a, b) => {
+        if (a.time !== b.time) {
+          return a.time - b.time;
+        }
+        return String(a.instrument).localeCompare(String(b.instrument));
+      });
+
+      return {
+        ...data,
+        _prepared: true,
+        events: normalizedEvents
+      };
+    }
+
+    function sectionForBar(barIndex, totalBars) {
+      if (totalBars <= 1) {
+        return "cierre";
+      }
+
+      const position = barIndex / Math.max(totalBars, 1);
+      if (position < 0.25) {
+        return "intro";
+      }
+      if (position < 0.5) {
+        return "llamada_repique";
+      }
+      if (position < 0.75) {
+        return "llamada_piano";
+      }
+      return "cierre";
+    }
+
+    function buildPatternPresetData(preset) {
+      const pattern = PRESET_PATTERN_LIBRARY[preset.patternId];
+      if (!pattern) {
+        return null;
+      }
+
+      const tempo = Math.max(50, Math.min(220, Number(refs.tempo.value) || preset.tempo || 90));
+      const bars = pattern.bars || preset.bars || 4;
+      const stepDuration = 60 / tempo / 4;
+      const events = [];
+
+      for (let barIndex = 0; barIndex < bars; barIndex += 1) {
+        const section = sectionForBar(barIndex, bars);
+        TRACKS.forEach((track) => {
+          const steps = track.key === "chico"
+            ? FIXED_CHICO_PATTERN
+            : (pattern.tracks[track.key] || []);
+          steps.forEach((stepData, stepInBar) => {
+            if (!stepData || !stepData.velocity) {
+              return;
+            }
+
+            const absoluteStep = (barIndex * 16) + stepInBar;
+            const offsetLimit = track.key === "chico" ? 5 : track.key === "piano" ? 10 : track.key === "repique" ? 12 : 6;
+            events.push({
+              instrument: track.key,
+              velocity: clamp(Math.round(stepData.velocity), 1, 127),
+              time: absoluteStep * stepDuration,
+              offset_ms: clamp(stepData.offset_ms || 0, -offsetLimit, offsetLimit),
+              step: absoluteStep,
+              section,
+              hit_type: stepData.hit_type || "stroke"
+            });
+          });
+        });
+      }
+
+      return preparePlaybackData({
+        tempo,
+        bars,
+        step_duration: stepDuration,
+        model_loaded: false,
+        source: "preset",
+        preset_label: pattern.label,
+        events
+      });
+    }
+
+    function getTrackMix(trackKey) {
+      const state = trackState[trackKey];
+      if (!state || state.muted) {
+        return 0;
+      }
+      return clamp(state.volume, 0, 1.4);
+    }
+
+    function populatePresetOptions() {
+      refs.presetGroove.innerHTML = "";
+      GROOVE_PRESETS.forEach((preset) => {
+        const option = document.createElement("option");
+        option.value = preset.id;
+        option.textContent = preset.label;
+        refs.presetGroove.appendChild(option);
+      });
+      const currentPreset = getGroovePreset();
+      refs.presetNote.textContent = currentPreset.note;
+    }
+
+    function applyPreset(preset) {
+      refs.tempo.value = String(preset.tempo);
+      refs.bars.value = String(preset.bars);
+      refs.seed.value = preset.seed;
+      refs.temperature.value = String(preset.temperature);
+      refs.density.value = String(preset.density);
+      refs.presetGroove.value = preset.id;
+      refs.presetNote.textContent = preset.note;
+      updateLiveLabels();
+      setStatus(`Ruta cargada: ${preset.label}.`, `Ruta ${preset.label}`);
+    }
+
+    function updatePresetNote() {
+      const preset = getGroovePreset();
+      refs.presetNote.textContent = preset.note;
+    }
+
+    function updateReplayAvailability() {
+      refs.replay.disabled = !lastGeneratedData;
+    }
+
+    function buildMixer() {
+      refs.mixer.innerHTML = "";
+      TRACKS.forEach((track) => {
+        const row = document.createElement("div");
+        row.className = "mixer-row";
+        row.dataset.track = track.key;
+        row.dataset.muted = "false";
+
+        const name = document.createElement("div");
+        name.className = "mixer-name";
+        name.innerHTML = `<span class="mixer-dot" style="background: var(--${track.key})"></span>${track.label}`;
+
+        const mute = document.createElement("button");
+        mute.type = "button";
+        mute.className = "mute-toggle";
+        mute.dataset.track = track.key;
+        mute.dataset.muted = "false";
+        mute.textContent = "Silenciar";
+
+        const slider = document.createElement("input");
+        slider.type = "range";
+        slider.min = "0";
+        slider.max = "1.2";
+        slider.step = "0.05";
+        slider.value = "1";
+        slider.dataset.track = track.key;
+        slider.dataset.role = "volume";
+
+        const value = document.createElement("span");
+        value.className = "mixer-value";
+        value.dataset.track = track.key;
+        value.dataset.role = "volume-label";
+        value.textContent = "100%";
+
+        mute.addEventListener("click", () => {
+          trackState[track.key].muted = !trackState[track.key].muted;
+          updateMixerRow(track.key);
+        });
+
+        slider.addEventListener("input", () => {
+          trackState[track.key].volume = Number(slider.value);
+          updateMixerRow(track.key);
+        });
+
+        row.appendChild(name);
+        row.appendChild(mute);
+        row.appendChild(slider);
+        row.appendChild(value);
+        refs.mixer.appendChild(row);
+      });
+
+      TRACKS.forEach((track) => updateMixerRow(track.key));
+    }
+
+    function updateMixerRow(trackKey) {
+      const state = trackState[trackKey];
+      const row = refs.mixer.querySelector(`.mixer-row[data-track="${trackKey}"]`);
+      const mute = refs.mixer.querySelector(`.mute-toggle[data-track="${trackKey}"]`);
+      const slider = refs.mixer.querySelector(`input[data-track="${trackKey}"][data-role="volume"]`);
+      const value = refs.mixer.querySelector(`span[data-track="${trackKey}"][data-role="volume-label"]`);
+      if (!row || !mute || !slider || !value) {
+        return;
+      }
+
+      row.dataset.muted = state.muted ? "true" : "false";
+      mute.dataset.muted = state.muted ? "true" : "false";
+      mute.textContent = state.muted ? "Silenciado" : "Silenciar";
+      slider.value = String(state.volume);
+      value.textContent = `${Math.round(state.volume * 100)}%`;
+    }
+
+    function connectVoiceOutput(sourceNode, destination, voice) {
+      const voiceGain = audioCtx.createGain();
+      voiceGain.gain.value = typeof voice.mix === "number" ? voice.mix : 1;
+      sourceNode.connect(voiceGain);
+
+      if (typeof audioCtx.createStereoPanner === "function") {
+        const panner = audioCtx.createStereoPanner();
+        panner.pan.value = clamp(typeof voice.pan === "number" ? voice.pan : 0, -1, 1);
+        voiceGain.connect(panner);
+        panner.connect(destination);
+        return;
+      }
+
+      voiceGain.connect(destination);
+    }
+
+    function updateSampleStatus() {
+      const loaded = TRACKS.filter((track) => {
+        if (sampleBuffers.has(track.key)) {
+          return true;
+        }
+
+        for (const variantKey of sampleVariantBuffers.keys()) {
+          if (variantKey.startsWith(`${track.key}:`)) {
+            return true;
+          }
+        }
+
+        return false;
+      }).length;
+      const declared = sampleManifest
+        ? TRACKS.filter((track) => {
+            const entry = sampleManifest[track.key];
+            if (entry && typeof entry === "object") {
+              return Object.values(entry).some((variantEntry) => normalizeSampleSources(variantEntry).length > 0);
+            }
+            return normalizeSampleSources(entry).length > 0;
+          }).length
+        : 0;
+
+      if (loaded === TRACKS.length) {
+        refs.metaSamples.textContent = `Muestras cargadas en ${loaded}/${TRACKS.length} tambores`;
+        return;
+      }
+
+      if (loaded > 0) {
+        refs.metaSamples.textContent = `Modo hibrido: ${loaded}/${TRACKS.length} tambores con muestra`;
+        return;
+      }
+
+      if (declared === 0) {
+        refs.metaSamples.textContent = "Sin muestras declaradas en manifest.json";
+        return;
+      }
+
+      refs.metaSamples.textContent = "Sintesis activa";
+    }
+
+    async function ensureAudioContext() {
+      if (!AudioContextCtor) {
+        throw new Error("Este navegador no soporta Web Audio.");
+      }
+
+      if (!audioCtx) {
+        try {
+          audioCtx = new AudioContextCtor({ latencyHint: "interactive" });
+        } catch (err) {
+          audioCtx = new AudioContextCtor();
+        }
+      }
+
+      if (audioCtx.state === "suspended") {
+        await audioCtx.resume();
+      }
+
+      if (!noiseBuffer) {
+        noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.22, audioCtx.sampleRate);
+        const channel = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < channel.length; i += 1) {
+          channel[i] = Math.random() * 2 - 1;
+        }
+      }
+    }
+
+    async function loadSampleBuffer(url) {
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(`Falta la muestra ${url}`);
+      }
+
+      const bytes = await res.arrayBuffer();
+      return audioCtx.decodeAudioData(bytes.slice(0));
+    }
+
+    async function ensureSampleManifest() {
+      if (sampleManifest) {
+        return sampleManifest;
+      }
+
+      try {
+        const res = await fetch("/samples/manifest.json", { cache: "no-store" });
+        if (!res.ok) {
+          sampleManifest = {};
+          return sampleManifest;
+        }
+
+        const manifest = await res.json();
+        sampleManifest = typeof manifest === "object" && manifest ? manifest : {};
+      } catch (err) {
+        sampleManifest = {};
+      }
+
+      return sampleManifest;
+    }
+
+    async function ensureSamplesLoaded() {
+      if (sampleLoadPromise) {
+        return sampleLoadPromise;
+      }
+
+      sampleLoadPromise = (async () => {
+        const manifest = await ensureSampleManifest();
+
+        await Promise.all(TRACKS.map(async (track) => {
+          if (sampleBuffers.has(track.key)) {
+            return;
+          }
+
+          const manifestEntry = manifest[track.key];
+          if (manifestEntry && typeof manifestEntry === "object" && !Array.isArray(manifestEntry)) {
+            await Promise.all(Object.entries(manifestEntry).map(async ([variant, variantEntry]) => {
+              const urls = normalizeSampleSources(variantEntry);
+              if (!urls.length) {
+                return;
+              }
+
+              const buffers = [];
+              for (const url of urls) {
+                try {
+                  buffers.push(await loadSampleBuffer(url));
+                } catch (err) {
+                  continue;
+                }
+              }
+
+              if (buffers.length) {
+                sampleVariantBuffers.set(`${track.key}:${variant}`, buffers);
+              }
+            }));
+            return;
+          }
+
+          const urlsToTry = normalizeSampleSources(manifestEntry);
+
+          const buffers = [];
+          for (const url of urlsToTry) {
+            try {
+              buffers.push(await loadSampleBuffer(url));
+            } catch (err) {
+              continue;
+            }
+          }
+
+          if (buffers.length) {
+            sampleBuffers.set(track.key, buffers);
+          }
+        }));
+
+        updateSampleStatus();
+      })();
+
+      return sampleLoadPromise;
+    }
+
+    function pickRoundRobinBuffer(key, buffers) {
+      if (!Array.isArray(buffers) || !buffers.length) {
+        return null;
+      }
+
+      const currentIndex = sampleRoundRobinState.get(key) || 0;
+      const buffer = buffers[currentIndex % buffers.length] || null;
+      sampleRoundRobinState.set(key, (currentIndex + 1) % buffers.length);
+      return buffer;
+    }
+
+    function getSampleBufferForEvent(eventData) {
+      if (!eventData) {
+        return pickRoundRobinBuffer("chico:default", sampleBuffers.get("chico")) || null;
+      }
+
+      if (eventData.instrument === "piano") {
+        return null;
+      }
+
+      const hitType = eventData.hit_type || "default";
+      const exactVariant = sampleVariantBuffers.get(`${eventData.instrument}:${hitType}`);
+      if (exactVariant) {
+        return pickRoundRobinBuffer(`${eventData.instrument}:${hitType}`, exactVariant);
+      }
+
+      const defaultVariant = sampleVariantBuffers.get(`${eventData.instrument}:default`);
+      if (defaultVariant) {
+        return pickRoundRobinBuffer(`${eventData.instrument}:default`, defaultVariant);
+      }
+
+      return pickRoundRobinBuffer(`${eventData.instrument}:track`, sampleBuffers.get(eventData.instrument)) || null;
+    }
+
+    function makeDriveCurve(amount = 22) {
+      const samples = 2048;
+      const curve = new Float32Array(samples);
+
+      for (let i = 0; i < samples; i += 1) {
+        const x = (i / (samples - 1)) * 2 - 1;
+        curve[i] = ((1 + amount) * x) / (1 + amount * Math.abs(x));
+      }
+
+      return curve;
+    }
+
+    function makeMasterBus() {
+      if (currentMaster) {
+        currentMaster.input.gain.cancelScheduledValues(audioCtx.currentTime);
+        currentMaster.input.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.02);
+        const oldMaster = currentMaster;
+        window.setTimeout(() => {
+          [oldMaster.input, ...(oldMaster.nodes || [])].forEach((node) => {
+            try {
+              node.disconnect();
+            } catch (err) {
+              return;
+            }
+          });
+        }, 260);
+      }
+
+      const input = audioCtx.createGain();
+      const lowShelf = audioCtx.createBiquadFilter();
+      const presence = audioCtx.createBiquadFilter();
+      const compressor = audioCtx.createDynamicsCompressor();
+      const saturator = audioCtx.createWaveShaper();
+      const output = audioCtx.createGain();
+
+      input.gain.value = 0.92;
+
+      lowShelf.type = "lowshelf";
+      lowShelf.frequency.value = 190;
+      lowShelf.gain.value = 2.4;
+
+      presence.type = "peaking";
+      presence.frequency.value = 1450;
+      presence.Q.value = 0.9;
+      presence.gain.value = 1.6;
+
+      compressor.threshold.value = -18;
+      compressor.knee.value = 18;
+      compressor.ratio.value = 3.2;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.12;
+
+      saturator.curve = makeDriveCurve(24);
+      saturator.oversample = "4x";
+
+      output.gain.value = 0.78;
+
+      input.connect(lowShelf);
+      lowShelf.connect(presence);
+      presence.connect(compressor);
+      compressor.connect(saturator);
+      saturator.connect(output);
+      output.connect(audioCtx.destination);
+
+      currentMaster = {
+        input,
+        nodes: [lowShelf, presence, compressor, saturator, output]
+      };
+      return input;
+    }
+
+    function shapeGain(gainNode, time, peak, decaySeconds, attackSeconds = 0.002, holdSeconds = 0.0) {
+      const safePeak = Math.max(peak, 0.0001);
+      gainNode.gain.cancelScheduledValues(time);
+      gainNode.gain.setValueAtTime(0.0001, time);
+      gainNode.gain.exponentialRampToValueAtTime(safePeak, time + attackSeconds);
+      gainNode.gain.setValueAtTime(safePeak, time + attackSeconds + holdSeconds);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, time + attackSeconds + holdSeconds + decaySeconds);
+    }
+
+    function playToneEvent(time, velocity, options, destination, voice = {}) {
+      const osc = audioCtx.createOscillator();
+      const filter = audioCtx.createBiquadFilter();
+      const gain = audioCtx.createGain();
+
+      osc.type = options.type;
+      osc.detune.setValueAtTime(voice.detune || 0, time);
+      osc.frequency.setValueAtTime(options.startFreq, time);
+      osc.frequency.exponentialRampToValueAtTime(options.endFreq, time + options.decay);
+
+      filter.type = options.filterType || "bandpass";
+      filter.frequency.setValueAtTime(options.filterFreq * (voice.filterScale || 1), time);
+      if (typeof options.q === "number") {
+        filter.Q.setValueAtTime(options.q, time);
+      }
+
+      shapeGain(
+        gain,
+        time,
+        velocity * options.gainScale * (voice.velocityScale || 1),
+        options.decay,
+        options.attack || 0.0015,
+        options.hold || 0
+      );
+
+      osc.connect(filter);
+      filter.connect(gain);
+      connectVoiceOutput(gain, destination, voice);
+      osc.start(time);
+      osc.stop(time + options.decay + 0.05);
+    }
+
+    function playNoiseEvent(time, velocity, options, destination, voice = {}) {
+      const source = audioCtx.createBufferSource();
+      const filter = audioCtx.createBiquadFilter();
+      const gain = audioCtx.createGain();
+
+      source.buffer = noiseBuffer;
+      filter.type = options.filterType || "bandpass";
+      filter.frequency.setValueAtTime(options.filterFreq * (voice.filterScale || 1), time);
+      if (typeof options.q === "number") {
+        filter.Q.setValueAtTime(options.q, time);
+      }
+
+      shapeGain(
+        gain,
+        time,
+        velocity * options.gainScale * (voice.velocityScale || 1),
+        options.decay,
+        options.attack || 0.0008,
+        options.hold || 0
+      );
+
+      source.connect(filter);
+      filter.connect(gain);
+      connectVoiceOutput(gain, destination, voice);
+      source.start(time);
+      source.stop(time + options.decay + 0.04);
+    }
+
+    function getChicoStrokeProfile(eventData) {
+      if (eventData && eventData.hit_type === "mano") {
+        return {
+          type: "mano",
+          filterScale: 0.94,
+          rate: 1.0,
+          sampleRate: 1.0,
+          gain: 0.96,
+          noise: 0.04,
+          decay: 0.54,
+          body: 0.92,
+          shell: 0.82,
+          skin: 0.7,
+          knock: 0.62,
+          fundamentalHz: 392.0,
+          overtoneHz: 784.0,
+          attackHz: 1174.66
+        };
+      }
+
+      return {
+        type: "palo",
+        filterScale: 1.08,
+        rate: 1.0,
+        sampleRate: 1.0,
+        gain: 0.68,
+        noise: 0.12,
+        decay: 0.24,
+        body: 0.36,
+        shell: 0.34,
+        skin: 1.0,
+        knock: 1.08,
+        fundamentalHz: 392.0,
+        overtoneHz: 784.0,
+        attackHz: 1318.51
+      };
+    }
+
+    function getPianoStrokeProfile(eventData) {
+      if (eventData && eventData.hit_type === "bass_open") {
+        return {
+          type: "bass_open",
+          mode: "bass",
+          filterScale: 0.72,
+          rate: 1.0,
+          gain: 1.08,
+          noise: 0.16,
+          decay: 1.04,
+          sub: 1.0,
+          attack: 0.78,
+          shell: 0.94,
+          knock: 0.76,
+          skin: 0.88,
+          fundamentalHz: 98.0,
+          shellHz: 146.83,
+          skinHz: 196.0,
+          attackHz: 311.13
+        };
+      }
+
+      if (eventData && eventData.hit_type === "stick_open") {
+        return {
+          type: "stick_open",
+          mode: "stick",
+          filterScale: 1.08,
+          rate: 1.01,
+          gain: 0.88,
+          noise: 0.96,
+          decay: 0.64,
+          sub: 0.84,
+          attack: 1.18,
+          shell: 1.0
+        };
+      }
+
+      if (eventData && eventData.hit_type === "stick_closed") {
+        return {
+          type: "stick_closed",
+          mode: "stick",
+          filterScale: 1.16,
+          rate: 1.02,
+          gain: 0.74,
+          noise: 1.06,
+          decay: 0.48,
+          sub: 0.74,
+          attack: 1.26,
+          shell: 0.82
+        };
+      }
+
+      return {
+        type: "bass_muted",
+        mode: "bass",
+        filterScale: 0.86,
+        rate: 1.0,
+        gain: 0.84,
+        noise: 0.12,
+        decay: 0.72,
+        sub: 0.96,
+        attack: 0.82,
+        shell: 0.82,
+        knock: 0.72,
+        skin: 0.82,
+        fundamentalHz: 98.0,
+        shellHz: 146.83,
+        skinHz: 185.0,
+        attackHz: 293.66
+      };
+    }
+
+    function getRepiqueStrokeProfile(eventData) {
+      if (eventData && eventData.hit_type === "clave") {
+        return {
+          type: "clave",
+          filterScale: 0.98,
+          rate: 1.0,
+          gain: 0.8,
+          noise: 0.76,
+          decay: 0.5,
+          body: 0.58,
+          ring: 0.42,
+          tail: 0.22,
+          attack: 1.08,
+          knock: 0.72,
+          shell: 0.64,
+          sampleHighpass: 132,
+          sampleTone: 1880,
+          sampleQ: 0.94,
+          sampleType: "lowpass"
+        };
+      }
+
+      if (eventData && eventData.hit_type === "talk_open") {
+        return {
+          type: "talk_open",
+          filterScale: 0.82,
+          rate: 0.97,
+          gain: 1.08,
+          noise: 0.3,
+          decay: 0.94,
+          body: 1.14,
+          ring: 0.92,
+          tail: 0.78,
+          attack: 0.7,
+          knock: 0.66,
+          shell: 1.02,
+          sampleHighpass: 56,
+          sampleTone: 1260,
+          sampleQ: 0.78,
+          sampleType: "lowpass"
+        };
+      }
+
+      if (eventData && eventData.hit_type === "talk_support") {
+        return {
+          type: "talk_support",
+          filterScale: 1.12,
+          rate: 1.01,
+          gain: 0.68,
+          noise: 0.86,
+          decay: 0.42,
+          body: 0.4,
+          ring: 0.18,
+          tail: 0.08,
+          attack: 1.24,
+          knock: 1.12,
+          shell: 0.44,
+          sampleHighpass: 180,
+          sampleTone: 2460,
+          sampleQ: 1.22,
+          sampleType: "bandpass"
+        };
+      }
+
+      if (eventData && eventData.hit_type === "talk_answer") {
+        return {
+          type: "talk_answer",
+          filterScale: 0.94,
+          rate: 1.0,
+          gain: 0.84,
+          noise: 0.54,
+          decay: 0.58,
+          body: 0.74,
+          ring: 0.34,
+          tail: 0.16,
+          attack: 1.02,
+          knock: 0.94,
+          shell: 0.72,
+          sampleHighpass: 110,
+          sampleTone: 1760,
+          sampleQ: 0.98,
+          sampleType: "bandpass"
+        };
+      }
+
+      if (eventData && eventData.hit_type === "talk_close") {
+        return {
+          type: "talk_close",
+          filterScale: 0.88,
+          rate: 0.985,
+          gain: 0.92,
+          noise: 0.46,
+          decay: 0.72,
+          body: 0.92,
+          ring: 0.52,
+          tail: 0.24,
+          attack: 0.88,
+          knock: 0.82,
+          shell: 0.86,
+          sampleHighpass: 84,
+          sampleTone: 1440,
+          sampleQ: 0.88,
+          sampleType: "lowpass"
+        };
+      }
+
+      if (eventData && eventData.hit_type === "call_open") {
+        return {
+          type: "call_open",
+          filterScale: 0.82,
+          rate: 0.97,
+          gain: 1.12,
+          noise: 0.52,
+          decay: 1.12,
+          body: 1.22,
+          ring: 1.02,
+          tail: 1.08,
+          attack: 0.72,
+          knock: 1.02,
+          shell: 1.08,
+          sampleHighpass: 48,
+          sampleTone: 1380,
+          sampleQ: 0.74,
+          sampleType: "lowpass"
+        };
+      }
+
+      if (eventData && eventData.hit_type === "call_support") {
+        return {
+          type: "call_support",
+          filterScale: 0.88,
+          rate: 0.985,
+          gain: 1.0,
+          noise: 0.5,
+          decay: 0.96,
+          body: 1.04,
+          ring: 0.9,
+          tail: 0.9,
+          attack: 0.82,
+          knock: 0.92,
+          shell: 0.98,
+          sampleHighpass: 56,
+          sampleTone: 1280,
+          sampleQ: 0.78,
+          sampleType: "lowpass"
+        };
+      }
+
+      if (eventData && eventData.hit_type === "call_close") {
+        return {
+          type: "call_close",
+          filterScale: 0.92,
+          rate: 1.0,
+          gain: 0.92,
+          noise: 0.62,
+          decay: 0.78,
+          body: 0.92,
+          ring: 0.76,
+          tail: 0.66,
+          attack: 0.94,
+          knock: 0.86,
+          shell: 0.84,
+          sampleHighpass: 72,
+          sampleTone: 1180,
+          sampleQ: 0.82,
+          sampleType: "lowpass"
+        };
+      }
+
+      if (eventData && eventData.hit_type === "call_tail") {
+        return {
+          type: "call_tail",
+          filterScale: 0.9,
+          rate: 0.985,
+          gain: 0.72,
+          noise: 0.42,
+          decay: 0.62,
+          body: 0.72,
+          ring: 0.62,
+          tail: 0.52,
+          attack: 0.72,
+          knock: 0.66,
+          shell: 0.72,
+          sampleHighpass: 84,
+          sampleTone: 1080,
+          sampleQ: 0.78,
+          sampleType: "lowpass"
+        };
+      }
+
+      return {
+        type: "stroke",
+        filterScale: 0.86,
+        rate: 0.985,
+        gain: 1.0,
+        noise: 0.5,
+        decay: 0.92,
+        body: 1.06,
+        ring: 0.88,
+        tail: 0.82,
+        attack: 0.8,
+        knock: 0.94,
+        shell: 0.94,
+        sampleHighpass: 58,
+        sampleTone: 1240,
+        sampleQ: 0.76,
+        sampleType: "lowpass"
+      };
+    }
+
+    function getClaveStrokeProfile() {
+      return {
+        rate: 1.0,
+        gain: 0.92,
+        noise: 0.22,
+        decay: 0.32,
+        shell: 1.0,
+        strike: 1.0,
+        sampleHighpass: 180,
+        sampleTone: 2100,
+        sampleQ: 1.08,
+        sampleType: "bandpass"
+      };
+    }
+
+    function playSampleEvent(time, velocity, buffer, destination, instrument, voice = {}, eventData = null) {
+      const source = audioCtx.createBufferSource();
+      const highpass = audioCtx.createBiquadFilter();
+      const tone = audioCtx.createBiquadFilter();
+      const gain = audioCtx.createGain();
+      const chicoStroke = instrument === "chico" ? getChicoStrokeProfile(eventData) : null;
+      const repiqueStroke = instrument === "repique" ? getRepiqueStrokeProfile(eventData) : null;
+      const pianoStroke = instrument === "piano" ? getPianoStrokeProfile(eventData) : null;
+      const claveStroke = instrument === "clave" ? getClaveStrokeProfile() : null;
+
+      const decay = instrument === "piano" ? 0.42 : instrument === "repique" ? 0.28 : instrument === "clave" ? 0.16 : 0.13;
+      const playbackRate = instrument === "chico"
+        ? (chicoStroke ? (chicoStroke.sampleRate || 1) : 1)
+        : instrument === "repique"
+          ? 1
+          : instrument === "piano"
+            ? 1
+            : instrument === "clave"
+              ? 1
+              : 1;
+
+      source.buffer = buffer;
+      source.playbackRate.value =
+        playbackRate
+        * (DRUM_TUNING.sampleRate[instrument] || 1)
+        * (voice.rate || 1)
+        * (instrument === "chico" ? (chicoStroke ? chicoStroke.rate : 1) : 1)
+        * (instrument === "clave" ? (claveStroke ? claveStroke.rate : 1) : 1);
+
+      highpass.type = "highpass";
+      highpass.frequency.setValueAtTime(
+        instrument === "piano"
+          ? (pianoStroke.mode === "stick" ? (pianoStroke.type === "stick_open" ? 96 : 132) : (pianoStroke.type === "bass_open" ? 24 : 36))
+          : instrument === "clave"
+            ? (claveStroke.sampleHighpass || 180)
+          : instrument === "chico"
+            ? (chicoStroke.type === "mano" ? 88 : 180)
+            : (repiqueStroke.sampleHighpass || 92),
+        time
+      );
+
+      tone.type = instrument === "piano"
+        ? (pianoStroke.mode === "stick" ? "bandpass" : "lowpass")
+        : instrument === "clave"
+          ? (claveStroke.sampleType || "bandpass")
+        : instrument === "repique"
+          ? (repiqueStroke.sampleType || "lowpass")
+          : "bandpass";
+      tone.frequency.setValueAtTime(
+        (instrument === "piano"
+          ? (pianoStroke.mode === "stick" ? 1760 : 1180)
+          : instrument === "clave"
+            ? (claveStroke.sampleTone || 2100)
+          : instrument === "repique"
+            ? (repiqueStroke.sampleTone || 1240)
+            : (chicoStroke && chicoStroke.type === "mano" ? 1980 : 2860))
+          * (voice.filterScale || 1)
+          * (chicoStroke ? chicoStroke.filterScale : 1)
+          * (repiqueStroke ? repiqueStroke.filterScale : 1)
+          * (pianoStroke ? pianoStroke.filterScale : 1),
+        time
+      );
+      if (instrument !== "piano") {
+        tone.Q.setValueAtTime(
+          instrument === "repique"
+            ? (repiqueStroke.sampleQ || 0.9)
+            : instrument === "clave"
+              ? (claveStroke.sampleQ || 1.08)
+              : (chicoStroke && chicoStroke.type === "mano" ? 1.02 : 1.48),
+          time
+        );
+      } else {
+        tone.Q.setValueAtTime(pianoStroke.mode === "stick" ? 1.1 : (pianoStroke.type === "bass_open" ? 0.86 : 0.98), time);
+      }
+
+      shapeGain(
+        gain,
+        time,
+        velocity
+          * (instrument === "piano" ? 0.88 : instrument === "clave" ? 0.62 : 0.74)
+          * (voice.velocityScale || 1)
+          * (chicoStroke ? chicoStroke.gain : 1)
+          * (repiqueStroke ? repiqueStroke.gain : 1)
+          * (pianoStroke ? pianoStroke.gain : 1)
+          * (claveStroke ? claveStroke.gain : 1),
+        decay
+          * (chicoStroke ? chicoStroke.decay : 1)
+          * (repiqueStroke ? repiqueStroke.decay : 1)
+          * (pianoStroke ? pianoStroke.decay : 1)
+          * (claveStroke ? claveStroke.decay : 1),
+        0.001,
+        instrument === "chico" ? 0.01 : 0.015
+      );
+
+      source.connect(highpass);
+      highpass.connect(tone);
+      tone.connect(gain);
+      connectVoiceOutput(gain, destination, voice);
+      source.start(time);
+      source.stop(time + decay + (instrument === "chico" ? 0.08 : 0.14));
+    }
+
+    function playChicoSynth(time, velocity, destination, voice = {}, eventData = null) {
+      const stroke = getChicoStrokeProfile(eventData);
+      const tune = DRUM_TUNING.chico;
+      const bodyFundamental = stroke.fundamentalHz || tune.fundamental;
+      const bodyOvertone = stroke.overtoneHz || (bodyFundamental * 2);
+      const attackTone = stroke.attackHz || tune.strike;
+
+      playNoiseEvent(time, velocity, {
+        filterFreq: (stroke.type === "mano" ? bodyOvertone * 1.28 : attackTone * 1.18) * stroke.filterScale,
+        q: stroke.type === "mano" ? 0.72 : 0.94,
+        decay: 0.008 * stroke.decay,
+        gainScale: 0.02 * stroke.noise
+      }, destination, voice);
+      playToneEvent(time, velocity, {
+        type: "sine",
+        startFreq: bodyFundamental,
+        endFreq: bodyFundamental,
+        decay: 0.094 * stroke.decay,
+        gainScale: 0.096 * stroke.gain,
+        filterFreq: bodyOvertone * 0.92 * stroke.filterScale,
+        q: 0.74
+      }, destination, voice);
+      playToneEvent(time, velocity, {
+        type: "triangle",
+        startFreq: bodyOvertone * stroke.skin,
+        endFreq: bodyOvertone * 0.98 * stroke.shell,
+        decay: 0.044 * stroke.decay,
+        gainScale: stroke.type === "mano" ? 0.036 * stroke.gain : 0.024 * stroke.gain,
+        filterFreq: bodyOvertone * 1.18 * stroke.filterScale,
+        q: 0.96
+      }, destination, voice);
+      playToneEvent(time + 0.002, velocity, {
+        type: "triangle",
+        startFreq: attackTone * stroke.knock,
+        endFreq: bodyOvertone * 1.06,
+        decay: 0.014 * stroke.decay,
+        gainScale: stroke.type === "mano" ? 0.014 : 0.02,
+        filterFreq: attackTone * 1.12 * stroke.filterScale,
+        q: 0.86
+      }, destination, voice);
+    }
+
+    function playRepiqueSynth(time, velocity, destination, voice = {}, eventData = null) {
+      const stroke = getRepiqueStrokeProfile(eventData);
+      const tune = DRUM_TUNING.repique;
+      const bodyFundamental = tune.fundamental;
+      const shellTone = tune.shell;
+      const skinTone = tune.skin;
+      const attackTone = tune.strike;
+
+      playNoiseEvent(time, velocity, {
+        filterFreq: attackTone * 1.64 * stroke.filterScale,
+        q: 0.82,
+        decay: 0.024 * stroke.decay,
+        gainScale: 0.052 * stroke.noise * stroke.attack
+      }, destination, voice);
+      playToneEvent(time, velocity, {
+        type: "sine",
+        startFreq: shellTone * 1.02 * stroke.shell,
+        endFreq: bodyFundamental * 0.99 * stroke.shell,
+        decay: 0.34 * stroke.decay,
+        gainScale: 0.18 * stroke.gain,
+        filterFreq: skinTone * 1.14 * stroke.filterScale,
+        q: 0.82
+      }, destination, voice);
+      playToneEvent(time, velocity, {
+        type: "triangle",
+        startFreq: skinTone * 1.01 * stroke.body,
+        endFreq: shellTone * 1.02 * stroke.body,
+        decay: 0.24 * stroke.decay,
+        gainScale: 0.12 * stroke.gain,
+        filterFreq: attackTone * 1.18 * stroke.filterScale,
+        q: 0.94
+      }, destination, voice);
+      playToneEvent(time + 0.004, velocity, {
+        type: "sine",
+        startFreq: shellTone * 0.96 * stroke.ring,
+        endFreq: bodyFundamental * 1.01 * stroke.ring,
+        decay: 0.28 * stroke.decay,
+        gainScale: 0.1 * stroke.gain,
+        filterFreq: skinTone * 1.06 * stroke.filterScale,
+        q: 0.84
+      }, destination, voice);
+      playToneEvent(time + 0.008, velocity, {
+        type: "sine",
+        startFreq: skinTone * 0.98 * stroke.tail,
+        endFreq: shellTone * 0.94 * stroke.tail,
+        decay: 0.32 * stroke.decay,
+        gainScale: 0.058 * stroke.gain,
+        filterFreq: shellTone * 1.28 * stroke.filterScale,
+        q: 0.7
+      }, destination, voice);
+      playToneEvent(time + 0.002, velocity, {
+        type: "triangle",
+        startFreq: attackTone * stroke.knock,
+        endFreq: skinTone * 1.08,
+        decay: 0.03 * stroke.decay,
+        gainScale: 0.028 * stroke.noise,
+        filterFreq: attackTone * 1.9 * stroke.filterScale,
+        q: 0.96
+      }, destination, voice);
+    }
+
+    function playPianoSynth(time, velocity, destination, voice = {}, eventData = null) {
+      const stroke = getPianoStrokeProfile(eventData);
+      const tune = DRUM_TUNING.piano;
+      const bodyFundamental = stroke.fundamentalHz || tune.fundamental;
+      const shellTone = stroke.shellHz || tune.shell;
+      const skinTone = stroke.skinHz || tune.skin;
+      const attackTone = stroke.attackHz || tune.strike;
+
+      if (stroke.mode === "stick") {
+        playNoiseEvent(time, velocity, {
+          filterFreq: tune.strike * 6.72 * stroke.filterScale,
+          q: 1.18,
+          decay: 0.034 * stroke.decay,
+          gainScale: 0.06 * stroke.noise * stroke.attack
+        }, destination, voice);
+        playToneEvent(time, velocity, {
+          type: "triangle",
+          startFreq: tune.skin * 2.42 * stroke.shell,
+          endFreq: tune.shell * 1.94 * stroke.shell,
+          decay: 0.16 * stroke.decay,
+          gainScale: 0.16 * stroke.gain,
+          filterFreq: tune.strike * 4.9 * stroke.filterScale,
+          q: 1.2
+        }, destination, voice);
+        playToneEvent(time + 0.003, velocity, {
+          type: "sine",
+          startFreq: tune.shell * 2.16 * stroke.sub,
+          endFreq: tune.skin * 1.06 * stroke.sub,
+          decay: 0.18 * stroke.decay,
+          gainScale: 0.09 * stroke.gain,
+          filterFreq: tune.strike * 3.72 * stroke.filterScale,
+          q: 0.98
+        }, destination, voice);
+        playToneEvent(time + 0.0015, velocity, {
+          type: "triangle",
+          startFreq: tune.strike * 3.45 * stroke.attack,
+          endFreq: tune.skin * 1.5 * stroke.attack,
+          decay: 0.05 * stroke.decay,
+          gainScale: 0.05 * stroke.noise,
+          filterFreq: tune.strike * 8.99 * stroke.filterScale,
+          q: 1.34
+        }, destination, voice);
+        return;
+      }
+
+      playNoiseEvent(time, velocity, {
+        filterFreq: attackTone * 1.64 * stroke.filterScale,
+        q: 0.74,
+        decay: 0.028 * stroke.decay,
+        gainScale: 0.02 * stroke.noise * stroke.attack
+      }, destination, voice);
+      playToneEvent(time + 0.0015, velocity, {
+        type: "triangle",
+        startFreq: attackTone * stroke.knock,
+        endFreq: shellTone * 1.22,
+        decay: 0.038 * stroke.decay,
+        gainScale: 0.032 * stroke.noise,
+        filterFreq: attackTone * 2.1 * stroke.filterScale,
+        q: 0.94
+      }, destination, voice);
+      playToneEvent(time, velocity, {
+        type: "sine",
+        startFreq: bodyFundamental * 1.01 * stroke.sub,
+        endFreq: bodyFundamental * 0.98 * stroke.sub,
+        decay: 0.52 * stroke.decay,
+        gainScale: 0.28 * stroke.gain,
+        filterFreq: shellTone * 1.42 * stroke.filterScale,
+        q: 0.82
+      }, destination, voice);
+      playToneEvent(time + 0.008, velocity, {
+        type: "triangle",
+        startFreq: shellTone * 1.08 * stroke.shell,
+        endFreq: skinTone * 0.96 * stroke.skin,
+        decay: 0.22 * stroke.decay,
+        gainScale: 0.1 * (stroke.type === "bass_open" ? 1.0 : 0.78),
+        filterFreq: skinTone * 1.66 * stroke.filterScale,
+        q: 0.88
+      }, destination, voice);
+      playToneEvent(time + 0.014, velocity, {
+        type: "sine",
+        startFreq: shellTone * stroke.shell,
+        endFreq: bodyFundamental * 1.01 * stroke.shell,
+        decay: 0.42 * stroke.decay,
+        gainScale: 0.14 * stroke.gain,
+        filterFreq: shellTone * 1.18 * stroke.filterScale,
+        q: 0.74
+      }, destination, voice);
+      playToneEvent(time + 0.018, velocity, {
+        type: "sine",
+        startFreq: bodyFundamental * 0.5,
+        endFreq: bodyFundamental * 0.5,
+        decay: 0.28 * stroke.decay,
+        gainScale: 0.06 * stroke.gain,
+        filterFreq: bodyFundamental * 1.06 * stroke.filterScale,
+        q: 0.66
+      }, destination, voice);
+    }
+
+    function playClaveSynth(time, velocity, destination, voice = {}) {
+      const stroke = getClaveStrokeProfile();
+      const strike = DRUM_TUNING.repique.strike;
+
+      playNoiseEvent(time, velocity, {
+        filterType: "bandpass",
+        filterFreq: strike * 4.8,
+        q: 1.24,
+        decay: 0.014,
+        gainScale: 0.028 * stroke.noise
+      }, destination, voice);
+      playToneEvent(time, velocity, {
+        type: "triangle",
+        startFreq: strike * 1.08,
+        endFreq: strike * 0.72,
+        decay: 0.072,
+        gainScale: 0.072 * stroke.gain,
+        filterFreq: strike * 3.6,
+        q: 1.18
+      }, destination, voice);
+      playToneEvent(time + 0.0015, velocity, {
+        type: "sine",
+        startFreq: strike * 1.42,
+        endFreq: strike * 0.96,
+        decay: 0.064,
+        gainScale: 0.046 * stroke.gain,
+        filterFreq: strike * 4.2,
+        q: 1.08
+      }, destination, voice);
+    }
+
+    function playInstrument(ev, startTime, destination) {
+      const velocity = Math.max(0.18, Math.min(1, ev.velocity / 127));
+      const time = startTime + ev.time + ((ev.offset_ms || 0) / 1000);
+      const voices = ACTIVE_VOICES.voices[ev.instrument] || [];
+      const trackMix = getTrackMix(ev.instrument);
+
+      if (trackMix <= 0 || !voices.length) {
+        return;
+      }
+
+      voices.forEach((voice) => {
+        const voiceTime = time + (voice.offsetMs || 0) / 1000;
+        const voiceVelocity = velocity;
+        const voiceWithTrackMix = { ...voice, mix: (typeof voice.mix === "number" ? voice.mix : 1) * trackMix };
+
+        const sampleBuffer = getSampleBufferForEvent(ev);
+        if (sampleBuffer) {
+          playSampleEvent(voiceTime, voiceVelocity, sampleBuffer, destination, ev.instrument, voiceWithTrackMix, ev);
+          return;
+        }
+
+        if (ev.instrument === "chico") {
+          playChicoSynth(voiceTime, voiceVelocity, destination, voiceWithTrackMix, ev);
+          return;
+        }
+
+        if (ev.instrument === "repique") {
+          playRepiqueSynth(voiceTime, voiceVelocity, destination, voiceWithTrackMix, ev);
+          return;
+        }
+
+        if (ev.instrument === "clave") {
+          playClaveSynth(voiceTime, voiceVelocity, destination, voiceWithTrackMix);
+          return;
+        }
+
+        playPianoSynth(voiceTime, voiceVelocity, destination, voiceWithTrackMix, ev);
+      });
+    }
+
+    function clearPlayhead() {
+      if (playheadFrame) {
+        cancelAnimationFrame(playheadFrame);
+        playheadFrame = null;
+      }
+
+      refs.pattern.querySelectorAll(".step").forEach((step) => {
+        step.dataset.current = "false";
+      });
+    }
+
+    function renderPattern(data) {
+      clearPlayhead();
+      refs.pattern.innerHTML = "";
+      const totalSteps = data.bars * 16;
+      const eventsByTrack = Object.fromEntries(TRACKS.map((track) => [track.key, new Map()]));
+
+      data.events.forEach((ev) => {
+        const stepIndex = typeof ev.step === "number"
+          ? Math.min(totalSteps - 1, Math.max(0, ev.step))
+          : Math.min(totalSteps - 1, Math.max(0, Math.round(ev.time / data.step_duration)));
+        const prevVelocity = eventsByTrack[ev.instrument].get(stepIndex) || 0;
+        eventsByTrack[ev.instrument].set(stepIndex, Math.max(prevVelocity, ev.velocity));
+      });
+
+      TRACKS.forEach((track) => {
+        const section = document.createElement("section");
+        section.className = "track";
+
+        const header = document.createElement("div");
+        header.className = "track-head";
+        header.innerHTML = `<strong>${track.label}</strong><span class="track-meta">${eventsByTrack[track.key].size} golpes</span>`;
+
+        const grid = document.createElement("div");
+        grid.className = "track-grid";
+        grid.style.gridTemplateColumns = `repeat(${totalSteps}, minmax(0, 1fr))`;
+
+        for (let step = 0; step < totalSteps; step += 1) {
+          const cell = document.createElement("div");
+          const velocity = eventsByTrack[track.key].get(step) || 0;
+          const intensity = velocity ? Math.max(0.22, velocity / 127) : 0;
+          cell.className = `step ${track.key}${(step + 1) % 16 === 0 ? " bar-edge" : ""}`;
+          cell.dataset.active = velocity ? "true" : "false";
+          cell.dataset.current = "false";
+          cell.dataset.stepIndex = String(step);
+          cell.style.opacity = velocity ? `${0.34 + intensity * 0.66}` : "1";
+          grid.appendChild(cell);
+        }
+
+        section.appendChild(header);
+        section.appendChild(grid);
+        refs.pattern.appendChild(section);
+      });
+    }
+
+    function animatePlayhead(startTime, totalDuration, stepDuration, totalSteps) {
+      clearPlayhead();
+      const steps = refs.pattern.querySelectorAll(".step");
+
+      const tick = () => {
+        const elapsed = audioCtx.currentTime - startTime;
+        if (elapsed < 0) {
+          playheadFrame = requestAnimationFrame(tick);
+          return;
+        }
+
+        if (elapsed >= totalDuration) {
+          steps.forEach((step) => { step.dataset.current = "false"; });
+          playheadFrame = null;
+          return;
+        }
+
+        const currentStep = Math.min(totalSteps - 1, Math.floor(elapsed / stepDuration));
+        steps.forEach((step) => {
+          step.dataset.current = step.dataset.stepIndex === String(currentStep) ? "true" : "false";
+        });
+        playheadFrame = requestAnimationFrame(tick);
+      };
+
+      playheadFrame = requestAnimationFrame(tick);
+    }
+
+    async function playGeneratedData(data, topMessage = "Sonando tambores individuales") {
+      const preparedData = preparePlaybackData(data);
+      await ensureAudioContext();
+      await ensureSamplesLoaded();
+
+      const destination = makeMasterBus();
+      const schedulingLead = Math.max(0.12, (audioCtx.baseLatency || 0.02) * 4);
+      const startTime = audioCtx.currentTime + schedulingLead;
+      const totalDuration = preparedData.step_duration * preparedData.bars * 16;
+      const layeredEvents = preparedData.events.reduce((total, ev) => {
+        const voices = ACTIVE_VOICES.voices[ev.instrument] || [];
+        return total + voices.length;
+      }, 0);
+
+      refs.metricTempo.textContent = String(preparedData.tempo);
+      refs.metricBars.textContent = String(preparedData.bars);
+      refs.metricEvents.textContent = String(preparedData.events.length);
+      refs.engineBadge.textContent = preparedData.source === "preset" ? "Preset" : (preparedData.model_loaded ? "Modelo" : "Reglas");
+      refs.metaEngine.textContent = preparedData.source === "preset"
+        ? `Preset ritmico: ${preparedData.preset_label || "Ruta armada"}`
+        : (preparedData.model_loaded ? "Checkpoint entrenado activo" : "Motor ritmico por reglas");
+      refs.metaPhrase.textContent = `${preparedData.bars * 16} pasos en ${preparedData.bars} compas${preparedData.bars === 1 ? "" : "es"}`;
+      refs.metaPlayback.textContent = `${ACTIVE_VOICES.label}: ${ACTIVE_VOICES.description}. ${layeredEvents} voces en ${totalDuration.toFixed(2)}s`;
+      refs.ctaNote.textContent = preparedData.source === "preset"
+        ? "Escuchando una variacion fija de Montevideo cargada como referencia dentro de la app."
+        : (preparedData.model_loaded
+          ? "Un checkpoint entrenado esta modelando esta exploracion de tambores individuales."
+          : "Sin checkpoint cargado, la app sostiene el toque con reglas ritmicas.");
+
+      renderPattern(preparedData);
+      preparedData.events.forEach((ev) => playInstrument(ev, startTime, destination));
+      animatePlayhead(startTime, totalDuration, preparedData.step_duration, preparedData.bars * 16);
+      setStatus(
+        `Sonando ${preparedData.events.length} golpes simbolicos como ${ACTIVE_VOICES.description} a lo largo de ${preparedData.bars} compas${preparedData.bars === 1 ? "" : "es"}.`,
+        topMessage
+      );
+    }
+
+    async function generateAndPlay() {
+      const tempo = Math.max(50, Math.min(220, Number(refs.tempo.value) || 90));
+      const bars = Math.max(4, Math.min(16, Number(refs.bars.value) || 4));
+      const seed = refs.seed.value;
+      const temperature = Number(refs.temperature.value) || 0.9;
+      const density = Number(refs.density.value) || 0.55;
+
+      refs.gen.disabled = true;
+      refs.engineBadge.textContent = "Cargando";
+      setStatus("Generando un nuevo mapa ritmico y preparando el audio.", "Generando...");
+
+      try {
+        const params = new URLSearchParams({
+          tempo: String(tempo),
+          bars: String(bars),
+          seed,
+          temperature: String(temperature),
+          density: String(density)
+        });
+
+        const res = await fetch(buildApiUrl(`/generate?${params.toString()}`));
+        if (!res.ok) {
+          throw new Error(`La solicitud fallo con ${res.status}`);
+        }
+
+        const data = await res.json();
+        lastGeneratedData = preparePlaybackData(data);
+        updateReplayAvailability();
+        await playGeneratedData(lastGeneratedData, "Sonando tambores individuales");
+      } catch (err) {
+        clearPlayhead();
+        refs.engineBadge.textContent = "Error";
+        setStatus(err.message || "No se pudo generar el audio.", "Error");
+        console.error(err);
+      } finally {
+        refs.gen.disabled = false;
+      }
+    }
+
+    refs.temperature.addEventListener("input", updateLiveLabels);
+    refs.density.addEventListener("input", updateLiveLabels);
+    refs.seed.addEventListener("change", updateLiveLabels);
+    refs.presetGroove.addEventListener("change", updatePresetNote);
+    refs.loadPreset.addEventListener("click", () => applyPreset(getGroovePreset()));
+    refs.playPreset.addEventListener("click", async () => {
+      const preset = getGroovePreset();
+      applyPreset(preset);
+      if (preset.patternId) {
+        lastGeneratedData = buildPatternPresetData(preset);
+        updateReplayAvailability();
+        await playGeneratedData(lastGeneratedData, `Sonando preset ${preset.label}`);
+        return;
+      }
+      await generateAndPlay();
+    });
+    refs.replay.addEventListener("click", async () => {
+      if (!lastGeneratedData) {
+        setStatus("Genera una base primero para poder repetirla.", "Todavia no hay repeticion");
+        return;
+      }
+
+      refs.replay.disabled = true;
+      try {
+        await playGeneratedData(lastGeneratedData, "Repitiendo la ultima base");
+      } catch (err) {
+        clearPlayhead();
+        refs.engineBadge.textContent = "Error";
+        setStatus(err.message || "No se pudo repetir el audio.", "Error al repetir");
+        console.error(err);
+      } finally {
+        updateReplayAvailability();
+      }
+    });
+    refs.tempo.addEventListener("input", updateLiveLabels);
+    refs.bars.addEventListener("input", updateLiveLabels);
+    refs.gen.addEventListener("click", generateAndPlay);
+
+    populatePresetOptions();
+    buildMixer();
+    updateLiveLabels();
+    updateSampleStatus();
+    updateReplayAvailability();
+    renderPattern({ bars: 4, step_duration: 0.166, events: [] });
   </script>
 </body>
 </html>

@@ -59,14 +59,24 @@ def collate_pad(batch):
     return torch.from_numpy(out)
 
 
-def train_loop(data_glob="data/processed/*.npz", epochs=10, lr=1e-4, device="cpu"):
-    paths = glob.glob(data_glob)
+def _resolve_paths(data_glob):
+    patterns = [pattern.strip() for pattern in str(data_glob).split(",") if pattern.strip()]
+    paths = []
+    for pattern in patterns:
+        paths.extend(glob.glob(pattern))
+    return sorted(set(paths))
+
+
+def train_loop(data_glob="data/processed/*.npz", epochs=10, lr=1e-4, device="cpu", init_checkpoint=None, save_prefix="models/candombe"):
+    paths = _resolve_paths(data_glob)
     if not paths:
         raise FileNotFoundError(f"No training files found for pattern: {data_glob}")
 
     ds = GridDataset(paths)
     loader = DataLoader(ds, batch_size=2, shuffle=True, collate_fn=lambda x: collate_pad(x))
     model = SimpleCandombeTransformer(input_dim=INPUT_DIM).to(device)
+    if init_checkpoint:
+        model.load_state_dict(torch.load(init_checkpoint, map_location=device))
     opt = optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.BCEWithLogitsLoss()
 
@@ -86,7 +96,7 @@ def train_loop(data_glob="data/processed/*.npz", epochs=10, lr=1e-4, device="cpu
             total += loss.item()
 
         print(f"Epoch {epoch} loss={total:.4f}")
-        torch.save(model.state_dict(), f"models/candombe_epoch{epoch}.pt")
+        torch.save(model.state_dict(), f"{save_prefix}_epoch{epoch}.pt")
 
 
 if __name__ == "__main__":
@@ -96,7 +106,16 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--data-glob", type=str, default="data/processed/*.npz")
+    parser.add_argument("--init-checkpoint", type=str, default="")
+    parser.add_argument("--save-prefix", type=str, default="models/candombe")
     args = parser.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    train_loop(epochs=args.epochs, lr=args.lr, data_glob=args.data_glob, device=device)
+    train_loop(
+        epochs=args.epochs,
+        lr=args.lr,
+        data_glob=args.data_glob,
+        device=device,
+        init_checkpoint=args.init_checkpoint or None,
+        save_prefix=args.save_prefix,
+    )

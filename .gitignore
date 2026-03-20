@@ -1,0 +1,33 @@
+# Audio files
+*.wav
+*.mp3
+*.ogg
+*.flac
+
+# Training data and analysis artifacts
+data/raw/
+data/processed/
+data/analysis/
+
+# Model checkpoints and training outputs
+models/*.pt
+models/*.pth
+models/*.ckpt
+models/*.bin
+!models/candombe_epoch5.pt
+
+# Local Python environments and dependencies
+.venv/
+venv/
+env/
+ENV/
+
+# Python cache
+Microsoft/
+src/__pycache__/
+__pycache__/
+*.pyc
+
+# Local logs
+server.out.log
+server.err.log
