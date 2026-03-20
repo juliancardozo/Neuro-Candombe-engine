@@ -88,7 +88,7 @@ Este repo queda preparado para despliegue hibrido:
 
 ### Backend en Render
 1. Conecta este repo en Render.
-2. Usa el archivo `render.yaml`.
+2. Usa el archivo `render.yaml`, que instala dependencias desde `requirements-api.txt`.
 3. El servicio levanta FastAPI con:
    ```bash
    uvicorn src.app:app --host 0.0.0.0 --port $PORT
@@ -99,6 +99,7 @@ Este repo queda preparado para despliegue hibrido:
 2. Netlify usa `netlify.toml`:
    - `publish = "web"`
    - `command = "node scripts/write-runtime-config.mjs"`
+   - frontend-only, sin instalar dependencias Python
 3. Define la variable de entorno `API_BASE_URL` con la URL publica del backend, por ejemplo:
    ```bash
    API_BASE_URL=https://neuro-candombe-api.onrender.com

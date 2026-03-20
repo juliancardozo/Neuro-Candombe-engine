@@ -1,6 +1,10 @@
 [build]
 command = "node scripts/write-runtime-config.mjs"
 publish = "web"
+functions = "netlify/functions-disabled"
+
+[build.environment]
+NODE_VERSION = "20"
 
 [[redirects]]
 from = "/*"
