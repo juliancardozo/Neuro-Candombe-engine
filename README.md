@@ -1,114 +1,107 @@
-# Neuro-Candombe-engine - MVP scaffold
+# Neuro-Candombe-engine
 
-Este repositorio contiene un MVP para generar patrones simbolicos de Candombe (`chico`, `repique`, `piano`) con un modelo tipo Transformer y un demo web sencillo.
+Genera candombe simbolico (`chico`, `repique`, `piano`) con un Transformer enmascarado que aprende golpes, intensidad, **microtiming** y **articulacion**, condicionado por seccion, tempo, densidad y estilo. Incluye un demo web, analisis de grabaciones reales, evaluacion objetiva y pruebas de escucha a ciegas.
+
+## Como funciona (v2)
+
+- **Representacion** (`src/representation.py`): grilla de semicorcheas, 3 tambores. Cada celda tiene clase de intensidad (silencio + 4), desfase de microtiming (fraccion de semicorchea, 13 bins) y articulacion (`chico`: mano/palo, `repique`: palo/mano/madera, `piano`: bass_open/bass_muted/stick_open/stick_closed).
+- **Modelo** (`src/model.py`): Transformer bidireccional enmascarado. Sabe en que semicorchea del compas, compas y seccion esta cada paso. Solo se puntuan las celdas ocultas, asi que el objetivo nunca esta en la entrada (el modelo v1 lo veia y por eso no aprendia).
+- **Generacion** (`src/generate.py`): decodificacion iterativa por confianza. Las reglas del toque no pisan la salida: entran como celdas fijas (chico) y como mascaras de clases permitidas (`src/candombe_rules.py`). Con el mismo modelo se puede generar desde cero, completar un tambor sobre otros fijos o humanizar el timing.
+- **Reglas** (`src/candombe_rules.py`): patron canonico del chico, motor por reglas con secciones (fallback de la API y corpus sintetico) y restricciones.
 
 ## Quick start (local)
-1. Crear un entorno virtual:
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate
-   ```
-2. Instalar dependencias:
-   ```bash
-   pip install -r requirements-api.txt
-   ```
-3. Entrenar (si ya tenes `.npz` en `data/processed/`):
-   ```bash
-   python src/train.py --epochs 20 --lr 3e-4
-   ```
-4. Levantar servidor:
-   ```bash
-   uvicorn src.app:app --reload --host 0.0.0.0 --port 8000
-   ```
-5. Abrir `http://localhost:8000`.
-
-## Como sacar mejores canciones/patrones
-- Dataset primero: usar MIDI limpios y bien cuantizados por instrumento.
-- Mas epocas + LR moderado: empezar en `--epochs 20 --lr 3e-4` y ajustar.
-- Control en generacion:
-  - `temperature` bajo (`0.6-0.9`) = mas estable.
-  - `temperature` alto (`1.1-1.4`) = mas variacion.
-  - `density` bajo (`0.30-0.45`) = aire/espacio.
-  - `density` alto (`0.60-0.80`) = mas actividad.
-- Semillas (`seed`): `clave` (base) o `energia` (mas movimiento).
-
-Ejemplo API:
 ```bash
-curl "http://localhost:8000/generate?tempo=96&bars=8&seed=clave&temperature=0.85&density=0.55"
+uv venv --python 3.10 .venv && source .venv/bin/activate
+uv pip install -r requirements-dev.txt      # o: pip install -r requirements-dev.txt
+pytest                                      # tests
+uvicorn src.app:app --reload --port 8000    # abrir http://localhost:8000
+```
+Sin checkpoint en `MODEL_PATH` (por defecto `models/candombe_v2.pt`), la API usa el motor por reglas.
+
+## Datos
+
+Todos los `.npz` comparten formato (`data` con velocities 0-127 y, opcionales, `offsets_frac`, `articulation`, `sections`, `tempo`, `style`). Los `.npz` viejos solo con `data` siguen funcionando.
+
+| Fuente | Comando | Que aporta |
+|---|---|---|
+| Sintetico (reglas) | `python src/build_synthetic_corpus.py --count 1200` | Secciones, articulacion y microtiming etiquetados. Techo: lo que saben las reglas. |
+| Dataset Candombe (UdelaR, Zenodo 6533068) | `python src/import_candombe_dataset.py --download` | 35 interpretaciones reales (~2 h) con pulso y compas anotados por un experto. **Licencia CC BY-NC-SA 4.0** (no comercial). |
+| Grabaciones propias, multipista | `python src/analyze_reference.py --stems chico=c.wav,repique=r.wav,piano=p.wav --downbeat 1.23 --out-npz data/processed/propias/toque1.npz` | Lo mejor: cada tambor aislado, sin heuristicas de separacion. |
+| Grabaciones propias, mezcla | `python src/build_reference_corpus.py --input-glob "data/analysis/muestras/*.wav" [--beats-dir anotaciones/]` | Training pieces + banco de muestras por articulacion. |
+| MIDI | `python src/data_preprocess.py toque.mid out.npz --note-map 36=piano,38=repique,42=chico` | Conserva el microtiming de los ticks. |
+
+Notas del analisis de audio (`src/analyze_reference.py`):
+- La grilla sigue los pulsos reales (anotados o detectados), asi que acompaña las aceleraciones de la llamada.
+- El inicio de compas sale de las anotaciones, de `--downbeat`, o se estima (el chico nunca toca la primera semicorchea del tiempo + plantilla de piano/repique). Revisar `phase_confidence` en la salida.
+- Cada onset se refina a nivel de muestra para no sumar latencia falsa al microtiming.
+- Con una mezcla, los tambores se separan por bandas y se filtra la filtracion entre bandas (`BLEED_RATIO`). Es una heuristica: los golpes fantasma muy suaves pueden perderse. Con stems no se aplica.
+
+Perfil de microtiming medido (reemplaza el provisorio de `src/microtiming.py`):
+```bash
+python src/microtiming.py --data-glob "data/processed/candombe_dataset/*.npz" --out data/analysis/microtiming_profile.json
+python src/build_synthetic_corpus.py --microtiming-profile data/analysis/microtiming_profile.json
 ```
 
-## Que incluye
-- `src/`: preprocesado, modelo, entrenamiento, generacion y FastAPI.
-- `web/`: frontend para reproducir eventos.
-- `models/`: checkpoints del modelo.
-- `data/`: entrada y datos procesados.
-
-## Analizar una referencia de audio
-Si queres extraer una aproximacion de `chico`, `repique` y `piano` desde un audio real:
-
+## Entrenamiento
 ```bash
-python src/analyze_reference.py --input C:\Users\julia\Desktop\candombe\references.wav --bars 4
-
-# Con tempo conocido
-# python src/analyze_reference.py --input path/to/references.wav --bars 4 --tempo 92
+python src/train.py --data-glob "data/processed/synthetic/*.npz@1,data/processed/candombe_dataset/*.npz@4" --epochs 30
+cp models/candombe_v2_best.pt models/candombe_v2.pt
 ```
+- `patron@peso` sobremuestrea una fuente (dar mas peso a lo real que a lo sintetico).
+- Separacion train/val por archivo, AdamW con warmup + coseno, early stopping; guarda `_best.pt` (con su config) y `_history.json`.
+- Opciones de tamaño: `--d-model`, `--layers`, `--heads`, `--max-bars`.
 
-Salidas:
-- `data/analysis/reference_events.json`: eventos con `instrument`, `step`, `offset_ms`, `velocity`, `hit_type`.
-- `data/processed/reference_from_audio.npz`: version cuantizada compatible con el entrenamiento actual.
-
-Notas del analizador:
-- Es una heuristica inicial por bandas y onsets, no separacion perfecta de fuentes.
-- Funciona mejor con fragmentos cortos y limpios donde la cuerda se escuche clara.
-- Si ya conoces el tempo, pasalo con `--tempo` para mejorar la cuantizacion.
-
-## Generar con los sonidos obtenidos de la referencia
-Despues de analizar la referencia, podes recortar una muestra por tambor y dejarla lista para la web:
-
+## Evaluacion
 ```bash
-python src/extract_reference_samples.py --analysis-json data/analysis/reference_events.json
+python src/evaluate.py --checkpoint models/candombe_v2.pt --reference-glob "data/processed/candombe_dataset/*.npz" \
+    --corpus-glob "data/processed/synthetic/*.npz" --n 64 --bars 8 --out reports/eval.json
 ```
+Compara modelo, reglas y referencia: conformidad del chico, apoyo del piano, llamadas, divergencias de posicion/intensidad/articulacion, distancia de microtiming, diversidad y **copy_rate** (compases copiados textuales del corpus: cerca de 1 = memoriza en vez de componer).
 
-Salidas:
-- `web/samples/chico.wav`
-- `web/samples/repique.wav`
-- `web/samples/piano.wav`
-- `data/analysis/reference_samples.json`: manifiesto con el golpe elegido por instrumento.
+## Pruebas de escucha a ciegas
+```bash
+python src/listening_test.py build --checkpoint models/candombe_v2.pt --reference-glob "data/processed/candombe_dataset/*.npz"
+# compartir data/listening_test/clips/ y ratings.csv (groove, autenticidad, interes de 1 a 5); guardar key.json
+python src/listening_test.py score --ratings oyente1.csv oyente2.csv
+```
+Para escuchar una generacion sin el navegador: `python src/render_audio.py --checkpoint models/candombe_v2.pt --bars 8 --out toque.wav`.
 
-Con esas muestras presentes, el frontend las usa automaticamente durante `/generate` y deja de caer en el sintetizador de fallback para esos instrumentos.
+## API
+```bash
+curl "http://localhost:8000/generate?tempo=104&bars=8&density=0.6&structure=intro,base,llamada_repique,base,llamada_piano,base,base,cierre"
+```
+| Parametro | Por defecto | Que hace |
+|---|---|---|
+| `tempo`, `bars` | 90, 4 | BPM (50-220), compases (4-16) |
+| `seed` | `clave` | `clave`: el repique abre con la clave en la madera; `energia`: +densidad; `base`: -densidad |
+| `temperature`, `top_p` | 0.9, 0.92 | Variacion del muestreo |
+| `density` | 0.55 | Carga ritmica (condiciona al modelo, no es una moneda al azar) |
+| `structure` | intro/llamadas/cierre por cuartos | Secciones por compas, separadas por coma: `base`, `intro`, `llamada_repique`, `llamada_piano`, `cierre` |
+| `style` | - | `montevideo`, `cuareim`, `ansina`, `cordon` (sirve cuando haya datos etiquetados) |
+| `lock_chico`, `strict_rules`, `palmas` | true | Chico fijo, restricciones del toque, palmas de clave |
+| `guidance` | 1.0 | >1 refuerza el condicionamiento (classifier-free guidance) |
+| `random_seed` | - | Reproducibilidad |
 
-## Notas
-- Si no hay modelo entrenado, `/generate` usa un patron rule-based de fallback.
-- Reemplaza los WAV de `web/samples/` por muestras cortas de buena calidad para una mejora audible inmediata.
+La respuesta (`version: 2`) trae por evento `offset_ms` (microtiming) y `articulation`, y la `random_seed` usada (pasarla de nuevo repite el resultado). `/health` informa si hay modelo cargado.
+
+`POST /regenerate` rehace una parte de un resultado anterior y deja fijo el resto: mismo cuerpo que los parametros de `/generate` (en JSON) mas `events` (los del resultado anterior), `keep_instruments` (tambores a mantener) y/o `regenerate_bars` (indices de compases a rehacer, desde 0).
+
+## Frontend
+- **Forma del toque**: una seccion por compas (intro, base, llamadas, cierre), editable; "Forma automatica" vuelve a la del backend.
+- **Rehacer manteniendo el resto**: solo el repique, el piano o el chico, o los compases marcados con "Rehacer" (usa `/regenerate`).
+- **Controles avanzados**: foco (top-p), guia de estilo, estilo, reglas estrictas/libres, palmas, semilla (y "Usar ultima" para repetir una generacion).
+- **Microtiming** (0 = cuantizado, 1 = como lo genero el modelo, 1.5 = exagerado) y **Chico fijo/libre**.
+- **Mapa ritmico**: la forma de cada golpe muestra la articulacion (lleno = palo/abierto, punto = mano/apagado, aro = madera/palo del piano) y su corrimiento horizontal el microtiming (x2). Tooltip con compas, tiempo, articulacion, intensidad y ms. Las piezas largas se desplazan dentro del mapa.
+- **Exportar**: WAV (render offline con la misma mezcla, mute y microtiming), MIDI (notas GM 42/38/36/39, compatibles con `data_preprocess.py` para reimportar) y JSON.
+- Al cargar consulta `/health` y muestra si hay modelo.
+- Muestras por articulacion en `web/samples/manifest.json` (`build_reference_corpus.py` lo genera); si falta una articulacion usa la de fase vieja o `default`.
+- Pendiente: el `manifest.json` versionado apunta a `.wav` que no estan en el repo (estan en `.gitignore`), asi que el navegador hace ~200 pedidos 404 al cargar y usa sintesis. Hay que versionar las muestras o regenerar el manifest con las que existan en el deploy.
 
 ## Deploy: Netlify + Render
-Este repo queda preparado para despliegue hibrido:
-- `web/` en Netlify
-- `src/app.py` en Render
+- `web/` en Netlify (`netlify.toml`, variable `API_BASE_URL` con la URL del backend).
+- `src/app.py` en Render (`render.yaml`, `MODEL_PATH=models/candombe_v2.pt`).
 
-### Backend en Render
-1. Conecta este repo en Render.
-2. Usa el archivo `render.yaml`, que instala dependencias desde `requirements-api.txt`.
-3. El servicio levanta FastAPI con:
-   ```bash
-   uvicorn src.app:app --host 0.0.0.0 --port $PORT
-   ```
-
-### Frontend en Netlify
-1. Conecta este repo en Netlify.
-2. Netlify usa `netlify.toml`:
-   - `publish = "web"`
-   - `command = "node scripts/write-runtime-config.mjs"`
-   - frontend-only, sin instalar dependencias Python
-3. Define la variable de entorno `API_BASE_URL` con la URL publica del backend, por ejemplo:
-   ```bash
-   API_BASE_URL= https://neuro-candombe-engine.onrender.com/
-   ```
-
-Durante el build, Netlify genera `web/runtime-config.js` con esa URL y el frontend pasa a llamar a la API remota.
-
-### Desarrollo local
-Si `API_BASE_URL` esta vacia, el frontend sigue usando same-origin, asi que localmente podes seguir corriendo:
-```bash
-uvicorn src.app:app --reload --host 0.0.0.0 --port 8000
-```
+## Limitaciones conocidas
+- El checkpoint incluido esta entrenado solo con el corpus sintetico: suena a las reglas con variaciones. El salto de calidad viene de entrenar con el dataset real y grabaciones propias multipista.
+- El perfil de microtiming por defecto es provisorio (derivado de los presets del frontend).
+- Las articulaciones de repique y piano en audio mezclado se agrupan por clustering heuristico: escuchar el banco y corregir el manifest.

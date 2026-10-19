@@ -14,7 +14,8 @@ models/*.pt
 models/*.pth
 models/*.ckpt
 models/*.bin
-!models/candombe_epoch5.pt
+!models/candombe_v2.pt
+models/*_history.json
 
 # Local Python environments and dependencies
 .venv/
@@ -27,6 +28,10 @@ Microsoft/
 src/__pycache__/
 __pycache__/
 *.pyc
+
+# Listening tests and evaluation reports
+data/listening_test/
+reports/
 
 # Local logs
 server.out.log

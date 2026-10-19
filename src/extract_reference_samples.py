@@ -86,10 +86,10 @@ def trim_and_fade(sample: np.ndarray, sr: int) -> np.ndarray:
     return sample.astype(np.float32)
 
 
-def extract_sample(audio: np.ndarray, sr: int, event: dict) -> np.ndarray:
+def extract_sample(audio: np.ndarray, sr: int, event: dict, isolated: bool = False) -> np.ndarray:
     instrument = event["instrument"]
     band_low, band_high = BANDS[instrument]
-    filtered = bandpass_filter(audio, sr, band_low, band_high)
+    filtered = audio if isolated else bandpass_filter(audio, sr, band_low, band_high)
 
     window = WINDOW_MS[instrument]
     start = max(0, int((float(event["time"]) - window["pre"] / 1000.0) * sr))
@@ -103,36 +103,38 @@ def save_samples(analysis_json: str, output_dir: str, manifest_path: Optional[st
     summary = payload.get("summary", {})
     events = payload.get("events", [])
     audio_path = summary.get("audio_path")
-    if not audio_path:
+    stems = summary.get("stems") or {}
+    if not audio_path and not stems:
         raise ValueError("The analysis JSON does not include the original audio path.")
-    if not os.path.exists(audio_path):
-        raise FileNotFoundError(f"Reference audio not found: {audio_path}")
+    for path in [audio_path, *stems.values()]:
+        if path and not os.path.exists(path):
+            raise FileNotFoundError(f"Reference audio not found: {path}")
 
     analysis_start = float(summary.get("start", 0.0) or 0.0)
     explicit_duration = summary.get("duration")
     max_event_time = max((float(event.get("time", 0.0)) for event in events), default=0.0)
     load_duration = explicit_duration if explicit_duration is not None else max_event_time + 1.0
 
-    audio, sr = librosa.load(
-        audio_path,
-        sr=None,
-        mono=True,
-        offset=analysis_start,
-        duration=load_duration,
-    )
-    if audio.size == 0:
-        raise ValueError("The reference audio is empty.")
+    def load(path: str):
+        audio, sr = librosa.load(path, sr=None, mono=True, offset=analysis_start, duration=load_duration)
+        if audio.size == 0:
+            raise ValueError(f"The reference audio is empty: {path}")
+        return audio, sr
 
+    mix = load(audio_path) if audio_path else None
     os.makedirs(output_dir, exist_ok=True)
     selected: Dict[str, dict] = {}
-    total_duration_s = audio.size / float(sr)
 
     for instrument in INSTRUMENTS:
-        event = select_event(events, instrument, total_duration_s=total_duration_s)
+        # A stem is already isolated, so it skips the band filter.
+        audio, sr = load(stems[instrument]) if instrument in stems else mix if mix is not None else (None, None)
+        if audio is None:
+            continue
+        event = select_event(events, instrument, total_duration_s=audio.size / float(sr))
         if event is None:
             continue
 
-        sample = extract_sample(audio, sr, event)
+        sample = extract_sample(audio, sr, event, isolated=instrument in stems)
         if sample.size == 0:
             continue
 
