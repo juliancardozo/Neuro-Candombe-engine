@@ -28,10 +28,13 @@ SYNTH_FALLBACK = {
     ("repique", "palo"): demo.repique_talk_open,
     ("repique", "mano"): demo.repique_talk_support,
     ("repique", "madera"): lambda: demo.normalize(demo.wood_click(0.07, 2400, 1500, decay=40)),
-    ("piano", "bass_open"): demo.piano_sample,
-    ("piano", "bass_muted"): lambda: demo.piano_sample()[: int(0.09 * SAMPLE_RATE)],
-    ("piano", "stick_open"): lambda: demo.normalize(demo.wood_click(0.09, 900, 420, decay=26)),
-    ("piano", "stick_closed"): lambda: demo.normalize(demo.wood_click(0.05, 1000, 520, decay=48)),
+    ("piano", "abierto"): demo.piano_sample,
+    ("piano", "masa"): lambda: demo.piano_sample()[: int(0.09 * SAMPLE_RATE)],
+    ("piano", "mano"): demo.piano_sample,
+    ("piano", "apagado"): lambda: demo.normalize(demo.wood_click(0.05, 1000, 520, decay=48)),
+    ("piano", "madera"): lambda: demo.normalize(demo.wood_click(0.05, 1300, 700, decay=48)),
+    ("chico", "madera"): lambda: demo.normalize(demo.wood_click(0.05, 2600, 1700, decay=48)),
+    ("repique", "rimshot"): demo.repique_talk_open,
     ("clave", "palmas"): demo.clave_palmas_sample,
 }
 

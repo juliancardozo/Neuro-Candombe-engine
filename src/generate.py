@@ -17,7 +17,7 @@ from typing import Dict, Optional, Sequence
 import numpy as np
 import torch
 
-from candombe_rules import allowed_velocity_mask, empty_fixed, lock_chico
+from candombe_rules import allowed_masks, apply_form, empty_fixed, lock_chico
 from model import OFF_MASK, VEL_MASK, CandombeTransformer, art_mask, load_checkpoint
 from representation import (
     DENSITY_UNKNOWN,
@@ -39,6 +39,7 @@ from representation import (
     style_id,
     tempo_bucket,
 )
+from toques import get_toque
 
 NEG_INF = -1e9
 
@@ -104,6 +105,7 @@ def _generate_window(
     model: CandombeTransformer,
     fixed: Dict[str, np.ndarray],
     allowed: np.ndarray,
+    allowed_art: np.ndarray,
     sections: Sequence[str],
     tempo: float,
     density_rate: float,
@@ -125,6 +127,7 @@ def _generate_window(
     off = torch.full((1, steps, N_INSTR), OFF_MASK, dtype=torch.long, device=device)
     art = torch.stack([torch.full((1, steps), art_mask(i), dtype=torch.long, device=device) for i in range(N_INSTR)], dim=-1)
     allowed_t = torch.from_numpy(allowed).to(device)
+    allowed_art_t = torch.from_numpy(allowed_art).to(device)
 
     # --- phase 1: velocities --------------------------------------------------------
     free = (vel[0] == VEL_MASK)
@@ -168,7 +171,8 @@ def _generate_window(
         art_choice = torch.zeros_like(off_choice)
         art_logp = torch.zeros_like(off_logp)
         for inst in range(N_INSTR):
-            choice, logp = _sample_logits(out["art"][inst][0], temperature, top_p, generator)
+            art_logits = out["art"][inst][0].masked_fill(~allowed_art_t[:, inst, : N_ART[inst]], NEG_INF)
+            choice, logp = _sample_logits(art_logits, temperature, top_p, generator)
             art_choice[:, inst] = choice
             art_logp[:, inst] = logp
 
@@ -198,13 +202,15 @@ def _generate_window(
 def generate_piece(
     model: CandombeTransformer,
     bars: int,
-    tempo: float = 96.0,
+    tempo: Optional[float] = None,
     density: float = 0.55,
     structure: Optional[Sequence[str]] = None,
     style: Optional[str] = None,
     fixed: Optional[Dict[str, np.ndarray]] = None,
     chico_locked: bool = True,
     strict_rules: bool = True,
+    tempos: Optional[Sequence[float]] = None,
+    lead_repique: bool = True,
     temperature: float = 0.9,
     top_p: float = 0.92,
     iterations: int = 16,
@@ -216,19 +222,35 @@ def generate_piece(
     """Generate `bars` bars. `density` is the 0..1 UI knob (see representation).
 
     `timing_temperature` is kept below the note temperature on purpose: sampling
-    microtiming hot turns the systematic swing into random sloppiness."""
+    microtiming hot turns the systematic swing into random sloppiness.
+
+    Cells fixed by the caller always win. Then, with `strict_rules`, the signals
+    of the llamada form are fixed (apply_form) and the toque's invariants are
+    imposed as allowed classes; with `chico_locked` the chico follows its toque
+    and each bar's tempo (`tempos`, one per bar)."""
+    tempo = float(tempo or get_toque(style).tempo)
     steps = bars * STEPS_PER_BAR
     structure = list(structure) if structure else default_structure(bars)
     if len(structure) != bars:
         raise ValueError("structure must have one section per bar")
 
-    fixed = fixed if fixed is not None else empty_fixed(steps)
+    fixed = {key: value.copy() for key, value in fixed.items()} if fixed is not None else empty_fixed(steps)
+    if strict_rules:
+        fixed = apply_form(fixed, structure, lead_repique)
     if chico_locked:
-        fixed = lock_chico(fixed)
-    allowed = allowed_velocity_mask(steps, structure) if strict_rules else np.ones((steps, N_INSTR, N_VEL), dtype=bool)
+        fixed = lock_chico(fixed, structure, style, tempos)
+    if strict_rules:
+        allowed, allowed_art = allowed_masks(steps, structure, style)
+    else:
+        allowed = np.ones((steps, N_INSTR, N_VEL), dtype=bool)
+        allowed_art = np.ones((steps, N_INSTR, max(N_ART)), dtype=bool)
+        for inst in range(N_INSTR):
+            allowed_art[:, inst, N_ART[inst]:] = False
     # A cell fixed by the caller is always allowed to keep its value.
     for step, inst in zip(*np.nonzero(fixed["vel"] >= 0)):
         allowed[step, inst, fixed["vel"][step, inst]] = True
+    for step, inst in zip(*np.nonzero(fixed["art"] >= 0)):
+        allowed_art[step, inst, fixed["art"][step, inst]] = True
 
     target_rate = density_control_to_rate(density)
     silence_bias = 1.5 * (0.5 - float(np.clip(density, 0.0, 1.0)))
@@ -247,6 +269,7 @@ def generate_piece(
             model,
             window_fixed,
             allowed[lo:hi],
+            allowed_art[lo:hi],
             structure[start_bar:end_bar],
             tempo,
             target_rate,
@@ -270,6 +293,6 @@ def generate_piece(
     velocities = np.zeros((steps, N_INSTR), dtype=np.int32)
     for value, center in enumerate(VEL_CENTERS, start=1):
         velocities[result["vel"] == value] = center
-    piece = make_piece(velocities, None, result["art"], structure, tempo=tempo, style=style, source="model")
+    piece = make_piece(velocities, None, result["art"], structure, tempo=tempo, style=get_toque(style).key, source="model")
     piece.off = np.where(result["vel"] > 0, result["off"], -1)
     return piece

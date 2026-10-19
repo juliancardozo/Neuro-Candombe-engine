@@ -26,7 +26,7 @@ import librosa
 import numpy as np
 from scipy.signal import butter, hilbert, sosfiltfilt
 
-from candombe_rules import CLAVE_STEPS, PIANO_POOL, REPIQUE_POOL
+from toques import CLAVE, REPIQUE_BASICO, TOQUES
 from representation import N_INSTR, STEPS_PER_BAR, STEPS_PER_BEAT, articulation_id, save_piece
 
 INSTRUMENTS = ("chico", "repique", "piano")
@@ -115,7 +115,7 @@ def infer_hit_type(instrument: str, velocity: int, prev_gap: Optional[float], ne
     if instrument == "chico":
         return "accent" if vel_norm >= 0.72 else "pulse"
     if instrument == "piano":
-        return "bass_open" if vel_norm >= 0.68 else "bass_muted"
+        return "abierto" if vel_norm >= 0.68 else "masa"
     if vel_norm <= 0.34:
         return "ghost"
     if vel_norm >= 0.8:
@@ -170,13 +170,16 @@ def snap(times: np.ndarray, grid: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 
 
 def _bar_template() -> np.ndarray:
-    """Expected onset weight per 16th position for piano and repique (2, 16)."""
+    """Expected onset weight per 16th position for repique and piano (2, 16),
+    from the documented patterns of the three toques (toques.py)."""
     template = np.zeros((2, STEPS_PER_BAR))
-    for pattern in PIANO_POOL:
-        template[1] += [hit["velocity"] if hit else 0 for hit in pattern]
-    for pattern in REPIQUE_POOL:
-        template[0] += [hit["velocity"] if hit else 0 for hit in pattern]
-    template[0, list(CLAVE_STEPS)] += template[0].max() * 0.5
+    for toque in TOQUES.values():
+        for pattern in toque.piano_bases:
+            for step, _, level in pattern.events:
+                template[1, step] += pattern.weight * (2.0 if level == "accent" else 1.0)
+    for pattern in (REPIQUE_BASICO, CLAVE):
+        for step, _, _ in pattern.events:
+            template[0, step] += 1.0
     template -= template.mean(axis=1, keepdims=True)
     return template / np.linalg.norm(template, axis=1, keepdims=True)
 

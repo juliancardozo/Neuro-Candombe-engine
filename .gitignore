@@ -16,7 +16,7 @@ models/*.pt
 models/*.pth
 models/*.ckpt
 models/*.bin
-!models/candombe_v2.pt
+!models/candombe_v3.pt
 models/*_history.json
 
 # Local Python environments and dependencies

@@ -34,17 +34,20 @@ OFFSET_BIN_WIDTH = 0.03
 N_OFF = 25
 OFFSET_CENTERS = (np.arange(N_OFF) - N_OFF // 2) * OFFSET_BIN_WIDTH  # -0.36 .. 0.36
 
+# Strokes as named by players and in the literature (see toques.py):
+# piano "abierto" = open stick, "apagado" = muted stick, "masa" = heavy hand
+# pressed into the head, "mano" = open hand; "madera" = stick on the shell.
 ARTICULATIONS = {
-    "chico": ("mano", "palo"),
-    "repique": ("palo", "mano", "madera"),
-    "piano": ("bass_open", "bass_muted", "stick_open", "stick_closed"),
+    "chico": ("mano", "palo", "madera"),
+    "repique": ("palo", "mano", "madera", "rimshot"),
+    "piano": ("abierto", "apagado", "masa", "mano", "madera"),
 }
 N_ART = tuple(len(ARTICULATIONS[name]) for name in INSTRUMENTS)
 
-SECTIONS = ("base", "intro", "llamada_repique", "llamada_piano", "cierre")
+SECTIONS = ("base", "intro", "llamada_repique", "llamada_piano", "cierre", "final")
 SECTION_UNKNOWN = len(SECTIONS)
 
-STYLES = ("montevideo", "cuareim", "ansina", "cordon")
+STYLES = ("cuareim", "ansina", "gaboto")  # the toques madre, see toques.py
 STYLE_UNKNOWN = len(STYLES)
 
 _TEMPO_EDGES = (80, 95, 110, 125, 140)
@@ -120,27 +123,31 @@ def section_id(name: Optional[str]) -> int:
 
 
 def style_id(name: Optional[str]) -> int:
+    name = {"cordon": "gaboto", "cordón": "gaboto"}.get(name, name)
     return STYLES.index(name) if name in STYLES else STYLE_UNKNOWN
 
 
 def default_structure(total_bars: int) -> list:
     """Section per bar when none is requested, shaped like a llamada:
-    the repiques mark the clave on the madera, a repique call starts the toque,
-    the base runs with a call closing every 8-bar phrase (and a piano call in
-    longer pieces), and the last bar closes."""
-    if total_bars <= 1:
-        return ["cierre"] * total_bars
+    every drum marks the clave on the madera, a repique call starts the toque,
+    the base runs with a repique call closing every 8-bar phrase (and a piano
+    call in longer pieces), the repique gives the closing signal over two bars
+    and everyone stops together on the last downbeat."""
+    if total_bars < 4:
+        return ["base"] * total_bars
     out = ["base"] * total_bars
     out[0] = "intro"
-    if total_bars >= 3:
-        out[1] = "llamada_repique"
-    for phrase_end in range(7, total_bars - 1, 8):
+    out[1] = "llamada_repique"
+    for phrase_end in range(9, total_bars - 3, 8):
         out[phrase_end] = "llamada_repique"
     if total_bars >= 12:
-        middle = total_bars // 2 + 1
+        middle = total_bars // 2 + 2
         if out[middle] == "base":
             out[middle] = "llamada_piano"
-    out[-1] = "cierre"
+    if total_bars >= 6:
+        out[-3] = "cierre"
+    out[-2] = "cierre"
+    out[-1] = "final"
     return out
 
 

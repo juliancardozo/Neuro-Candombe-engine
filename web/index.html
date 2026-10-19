@@ -269,10 +269,34 @@
     .lane-repique { --color: var(--repique); }
     .lane-piano { --color: var(--piano); }
 
-    .hit[data-art="mano"]::after,
-    .hit[data-art="bass_muted"]::after { inset: 25%; border-radius: 50%; }
-    .hit[data-art="madera"]::after,
-    .hit[data-art="stick_closed"]::after { background: transparent; border: 2px solid var(--color); }
+    /* palo / abierto: full square · masa: full circle · mano: dot ·
+       apagado: small square · madera: ring · rimshot: square with a rim */
+    .hit[data-art="masa"]::after { border-radius: 50%; }
+    .hit[data-art="mano"]::after { inset: 25%; border-radius: 50%; }
+    .hit[data-art="apagado"]::after { inset: 22%; border-radius: 1px; }
+    .hit[data-art="madera"]::after { background: transparent; border: 2px solid var(--color); }
+    .hit[data-art="rimshot"]::after { box-shadow: 0 0 0 2px var(--ink); }
+
+    .toques { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+
+    .toque {
+      display: grid;
+      gap: 2px;
+      text-align: left;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--surface-2);
+      color: var(--ink);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .toque strong { font-size: 1rem; }
+    .toque span { color: var(--muted); font-size: 0.8rem; }
+    .toque[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+    .toque[aria-pressed="true"] strong { color: var(--accent); }
+    .toque-note { margin: 0; color: var(--muted); font-size: 0.88rem; }
 
     .empty { color: var(--muted); margin: 0; }
 
@@ -306,7 +330,7 @@
     }
 
     @media (max-width: 520px) {
-      .controls, .more-grid { grid-template-columns: 1fr; }
+      .controls, .more-grid, .toques { grid-template-columns: 1fr; }
       .play { width: 100%; }
       .card { padding: 16px; }
     }
@@ -324,15 +348,25 @@
         <div class="hero-top">
           <div>
             <h1 id="title">Desfile de llamadas</h1>
-            <p class="lede">Una cuerda de tambores generada por IA. Arranca con la madera de los repiques, entra la llamada y sale a la calle.</p>
+            <p class="lede">Una cuerda de tambores generada por IA en los toques madre de Montevideo. Arranca con todos en la madera, el repique llama y la cuerda sale a la calle.</p>
           </div>
           <button class="play" id="play" type="button"><span class="play-icon" aria-hidden="true">▶</span><span id="play-label">Tocar</span></button>
         </div>
 
+        <div class="control">
+          <span class="control-label" id="toque-label">Toque</span>
+          <div class="toques" role="group" aria-labelledby="toque-label" id="toques">
+            <button class="toque" type="button" data-value="cuareim" aria-pressed="false"><strong>Cuareim</strong><span>Barrio Sur</span></button>
+            <button class="toque" type="button" data-value="ansina" aria-pressed="true"><strong>Ansina</strong><span>Palermo</span></button>
+            <button class="toque" type="button" data-value="gaboto" aria-pressed="false"><strong>Gaboto</strong><span>Cordón</span></button>
+          </div>
+          <p class="toque-note" id="toque-note"></p>
+        </div>
+
         <div class="controls">
           <div class="control">
-            <label class="control-label" for="tempo">Tempo <output id="tempo-out">116 BPM</output></label>
-            <input id="tempo" type="range" min="96" max="144" step="1" value="116">
+            <label class="control-label" for="tempo">Tempo <output id="tempo-out">132 BPM</output></label>
+            <input id="tempo" type="range" min="96" max="150" step="1" value="132">
           </div>
           <div class="control">
             <span class="control-label" id="bars-label">Duración</span>
@@ -358,7 +392,7 @@
 
         <div class="toggles">
           <label class="toggle"><input type="checkbox" id="passing" checked>La cuerda pasa frente a vos</label>
-          <label class="toggle"><input type="checkbox" id="accelerate" checked>Subir la llamada (acelera de a poco)</label>
+          <label class="toggle"><input type="checkbox" id="accelerate" checked>Subir la llamada (arranca más lento y sube)</label>
         </div>
 
         <p class="status" id="status" aria-live="polite">Elegí la cuerda y tocá.</p>
@@ -378,7 +412,7 @@
             <span><i class="swatch" style="background: var(--chico)"></i>Chico</span>
             <span><i class="swatch" style="background: var(--repique)"></i>Repique</span>
             <span><i class="swatch" style="background: var(--piano)"></i>Piano</span>
-            <span>■ palo · ● mano · □ madera</span>
+            <span>■ palo · ● masa · • mano · ▪ apagado · □ madera</span>
           </div>
         </div>
         <div class="score" id="score"><p class="empty">Todavía no hay llamada. Tocá para generar una.</p></div>
@@ -424,7 +458,7 @@
               </div>
             </div>
           </div>
-          <p class="note">Mezcla, swing, calle, "la cuerda pasa" y "subir la llamada" se aplican la próxima vez que toques, sin generar de nuevo. El MIDI trae una línea por tambor (el repique principal).</p>
+          <p class="note">Mezcla, swing, calle y "la cuerda pasa" se aplican la próxima vez que toques, sin generar de nuevo. El MIDI trae una línea por tambor (el repique principal) con la curva de tempo. Los patrones de cada toque vienen de transcripciones publicadas (Jure y Rocamora; Ferreira; Sutton): ver <code>src/toques.py</code>.</p>
         </details>
       </section>
     </main>
@@ -438,7 +472,14 @@
       llamada_repique: "Llamada",
       llamada_piano: "Llamada de piano",
       base: "Base",
-      cierre: "Cierre"
+      cierre: "Cierre",
+      final: "Final"
+    };
+    // Shown until /toques answers; the backend is the source of truth.
+    const TOQUES = {
+      cuareim: { label: "Cuareim", tempo: 124, description: "El más pausado y asentado. El piano es el más simple y casi no varía; el chico toca de tres." },
+      ansina: { label: "Ansina", tempo: 132, description: "Rápido y agresivo. Los pianos dialogan entre sí y con los repiques, con más golpes en el tercer tiempo." },
+      gaboto: { label: "Gaboto", tempo: 136, description: "Más rápido que Ansina pero menos estable. El piano alterna figuras de Cuareim y de Ansina." }
     };
     // Players per drum. Repiques beyond MAX_REPIQUE_LINES share lines.
     const CUERDAS = {
@@ -455,7 +496,6 @@
       repique: { biasMs: 5, jitterMs: 3.5, cents: 35, level: 0.12 },
       piano: { biasMs: 4, jitterMs: 3, cents: 30, level: 0.1 }
     };
-    const ACCELERATION = 0.05; // tempo rises 5% over the piece with "subir la llamada"
     const TAIL_S = 1.8; // let the last hits and the reverb ring
     const LOOKAHEAD_S = 0.35;
     const SCHEDULER_MS = 25;
@@ -470,6 +510,8 @@
       density: $("density"),
       passing: $("passing"),
       accelerate: $("accelerate"),
+      toques: $("toques"),
+      toqueNote: $("toque-note"),
       status: $("status"),
       again: $("again"),
       newRepiques: $("new-repiques"),
@@ -493,7 +535,7 @@
       ctx: null,
       samples: null,
       performance: null,
-      choice: { bars: 16, cuerda: "mediana" }
+      choice: { bars: 16, cuerda: "mediana", toque: "ansina" }
     };
 
     // --- API -----------------------------------------------------------------------------
@@ -534,7 +576,8 @@
         temperature: Number(ui.temperature.value),
         repiques: Math.min(MAX_REPIQUE_LINES, CUERDAS[state.choice.cuerda].repique),
         lock_chico: ui.lockChico.checked,
-        seed: "clave"
+        style: state.choice.toque,
+        subir: ui.accelerate.checked
       };
       if (ui.seed.value !== "") {
         params.random_seed = Math.max(0, Math.round(Number(ui.seed.value)));
@@ -631,8 +674,8 @@
       const key = `${instrument}:${articulation}`;
       if (fallbackCache.has(key)) return fallbackCache.get(key);
       const f0 = { chico: 330, repique: 225, piano: 108 }[instrument] || 220;
-      const wood = articulation === "madera" || articulation === "stick_closed";
-      const muted = articulation === "mano" || articulation === "bass_muted";
+      const wood = articulation === "madera";
+      const muted = articulation === "mano" || articulation === "masa" || articulation === "apagado";
       const decay = wood ? 0.02 : (muted ? 0.06 : 0.15) * (instrument === "piano" ? 2 : 1);
       const length = Math.floor(ctx.sampleRate * Math.min(1, decay * 6));
       const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
@@ -677,7 +720,6 @@
     function playbackOptions() {
       return {
         passing: ui.passing.checked,
-        accelerate: ui.accelerate.checked,
         microtiming: Number(ui.microtiming.value),
         reverb: Number(ui.reverb.value),
         mix: Object.fromEntries(INSTRUMENTS.map((name) => [name, Number(ui.mix[name].value)])),
@@ -685,15 +727,24 @@
       };
     }
 
-    // Start time of every 16th step, with the optional gradual acceleration.
-    function stepTimes(data, accelerate) {
+    // Start time of every 16th step, following the tempo of each bar
+    // (the API's tempo_curve: "subir la llamada" starts slower and rises).
+    function stepTimes(data) {
       const steps = data.bars * 16;
       const times = new Float64Array(steps + 1);
-      const rise = accelerate ? ACCELERATION : 0;
       for (let s = 0; s < steps; s += 1) {
-        times[s + 1] = times[s] + data.step_duration / (1 + rise * s / steps);
+        const bpm = (data.tempo_curve && data.tempo_curve[Math.floor(s / 16)]) || data.tempo;
+        times[s + 1] = times[s] + 60 / bpm / 4;
       }
       return times;
+    }
+
+    // Loudness of the bar; the lead repique keeps full strength for its signals.
+    function barDynamics(data, ev, step) {
+      const bar = Math.floor(step / 16);
+      const level = (data.dynamics && data.dynamics[bar]) || 1;
+      const signal = ev.instrument === "repique" && (ev.voice || 0) === 0 && data.structure && data.structure[bar] === "cierre";
+      return signal ? 1 : level;
     }
 
     function planPerformance(data, options) {
@@ -717,7 +768,7 @@
         }
       });
 
-      const times = stepTimes(data, options.accelerate);
+      const times = stepTimes(data);
       const items = [];
       data.events.forEach((ev) => {
         if (!INSTRUMENTS.includes(ev.instrument)) return;
@@ -730,7 +781,7 @@
             time: times[Math.min(step, times.length - 1)] + offsetMs / 1000,
             player,
             articulation: ev.articulation || ev.hit_type || "default",
-            velocity: Math.max(1, Math.min(127, ev.velocity * (1 + gaussian(rand) * 0.06))),
+            velocity: Math.max(1, Math.min(127, ev.velocity * barDynamics(data, ev, step) * (1 + gaussian(rand) * 0.06))),
             step
           });
         });
@@ -1087,10 +1138,9 @@
       const ppq = 480;
       const ticksPerStep = ppq / 4;
       const stepMs = data.step_duration * 1000;
-      const rise = options.accelerate ? ACCELERATION : 0;
       const messages = [];
       for (let bar = 0; bar < data.bars; bar += 1) {
-        const us = Math.round(60000000 / (data.tempo * (1 + rise * bar / data.bars)));
+        const us = Math.round(60000000 / ((data.tempo_curve && data.tempo_curve[bar]) || data.tempo));
         messages.push({ tick: bar * 16 * ticksPerStep, order: 0, bytes: [0xff, 0x51, 0x03, (us >> 16) & 0xff, (us >> 8) & 0xff, us & 0xff] });
       }
       data.events.forEach((ev) => {
@@ -1159,7 +1209,8 @@
       const cuerda = CUERDAS[state.choice.cuerda];
       const engine = data.engine === "model" ? "la IA" : "las reglas";
       const pianos = `${cuerda.piano} piano${cuerda.piano > 1 ? "s" : ""}`;
-      return `Cuerda de ${cuerda.chico} chicos, ${cuerda.repique} repiques y ${pianos} · ${data.bars} compases a ${data.tempo} BPM · generada por ${engine} (semilla ${data.random_seed}).`;
+      const toque = data.toque ? `${data.toque.label} (${data.toque.barrio})` : "";
+      return `${toque} · cuerda de ${cuerda.chico} chicos, ${cuerda.repique} repiques y ${pianos} · ${data.bars} compases a ${data.tempo} BPM · generada por ${engine} (semilla ${data.random_seed}).`;
     }
 
     function stopPlayback() {
@@ -1238,6 +1289,31 @@
       });
     });
 
+    function selectToque(key) {
+      state.choice.toque = key;
+      ui.toques.querySelectorAll(".toque").forEach((b) => b.setAttribute("aria-pressed", b.dataset.value === key ? "true" : "false"));
+      ui.toqueNote.textContent = TOQUES[key].description;
+      // Each toque has its own typical tempo.
+      ui.tempo.value = String(TOQUES[key].tempo);
+      ui.tempo.dispatchEvent(new Event("input"));
+      state.dirty = true;
+    }
+
+    ui.toques.addEventListener("click", (event) => {
+      const button = event.target.closest(".toque");
+      if (button) selectToque(button.dataset.value);
+    });
+
+    async function loadToques() {
+      try {
+        const list = await readJson(await fetch(apiUrl("/toques")));
+        list.forEach((t) => { TOQUES[t.key] = { label: t.label, tempo: t.tempo, description: t.description }; });
+      } catch (err) {
+        console.warn("Uso la descripción local de los toques", err);
+      }
+      ui.toqueNote.textContent = TOQUES[state.choice.toque].description;
+    }
+
     function bindOutput(input, output, format, regenerates) {
       const update = () => { output.textContent = format(Number(input.value)); };
       input.addEventListener("input", () => {
@@ -1254,10 +1330,11 @@
     bindOutput(ui.microtiming, $("microtiming-out"), percent, false);
     bindOutput(ui.reverb, $("reverb-out"), percent, false);
     INSTRUMENTS.forEach((name) => bindOutput(ui.mix[name], $(`mix-${name}-out`), percent, false));
-    [ui.lockChico, ui.seed].forEach((input) => input.addEventListener("change", () => { state.dirty = true; }));
+    [ui.lockChico, ui.seed, ui.accelerate].forEach((input) => input.addEventListener("change", () => { state.dirty = true; }));
 
     refreshButtons();
     checkHealth();
+    loadToques();
   </script>
 </body>
 </html>

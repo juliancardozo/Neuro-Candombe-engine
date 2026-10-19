@@ -12,6 +12,12 @@
       "/samples/llamadas/chico_mano_03.wav",
       "/samples/llamadas/chico_mano_04.wav"
     ],
+    "madera": [
+      "/samples/llamadas/chico_madera_01.wav",
+      "/samples/llamadas/chico_madera_02.wav",
+      "/samples/llamadas/chico_madera_03.wav",
+      "/samples/llamadas/chico_madera_04.wav"
+    ],
     "default": [
       "/samples/llamadas/chico_palo_01.wav",
       "/samples/llamadas/chico_palo_02.wav",
@@ -38,6 +44,12 @@
       "/samples/llamadas/repique_madera_03.wav",
       "/samples/llamadas/repique_madera_04.wav"
     ],
+    "rimshot": [
+      "/samples/llamadas/repique_rimshot_01.wav",
+      "/samples/llamadas/repique_rimshot_02.wav",
+      "/samples/llamadas/repique_rimshot_03.wav",
+      "/samples/llamadas/repique_rimshot_04.wav"
+    ],
     "default": [
       "/samples/llamadas/repique_palo_01.wav",
       "/samples/llamadas/repique_palo_02.wav",
@@ -46,35 +58,41 @@
     ]
   },
   "piano": {
-    "bass_open": [
-      "/samples/llamadas/piano_bass_open_01.wav",
-      "/samples/llamadas/piano_bass_open_02.wav",
-      "/samples/llamadas/piano_bass_open_03.wav",
-      "/samples/llamadas/piano_bass_open_04.wav"
+    "abierto": [
+      "/samples/llamadas/piano_abierto_01.wav",
+      "/samples/llamadas/piano_abierto_02.wav",
+      "/samples/llamadas/piano_abierto_03.wav",
+      "/samples/llamadas/piano_abierto_04.wav"
     ],
-    "bass_muted": [
-      "/samples/llamadas/piano_bass_muted_01.wav",
-      "/samples/llamadas/piano_bass_muted_02.wav",
-      "/samples/llamadas/piano_bass_muted_03.wav",
-      "/samples/llamadas/piano_bass_muted_04.wav"
+    "apagado": [
+      "/samples/llamadas/piano_apagado_01.wav",
+      "/samples/llamadas/piano_apagado_02.wav",
+      "/samples/llamadas/piano_apagado_03.wav",
+      "/samples/llamadas/piano_apagado_04.wav"
     ],
-    "stick_open": [
-      "/samples/llamadas/piano_stick_open_01.wav",
-      "/samples/llamadas/piano_stick_open_02.wav",
-      "/samples/llamadas/piano_stick_open_03.wav",
-      "/samples/llamadas/piano_stick_open_04.wav"
+    "masa": [
+      "/samples/llamadas/piano_masa_01.wav",
+      "/samples/llamadas/piano_masa_02.wav",
+      "/samples/llamadas/piano_masa_03.wav",
+      "/samples/llamadas/piano_masa_04.wav"
     ],
-    "stick_closed": [
-      "/samples/llamadas/piano_stick_closed_01.wav",
-      "/samples/llamadas/piano_stick_closed_02.wav",
-      "/samples/llamadas/piano_stick_closed_03.wav",
-      "/samples/llamadas/piano_stick_closed_04.wav"
+    "mano": [
+      "/samples/llamadas/piano_mano_01.wav",
+      "/samples/llamadas/piano_mano_02.wav",
+      "/samples/llamadas/piano_mano_03.wav",
+      "/samples/llamadas/piano_mano_04.wav"
+    ],
+    "madera": [
+      "/samples/llamadas/piano_madera_01.wav",
+      "/samples/llamadas/piano_madera_02.wav",
+      "/samples/llamadas/piano_madera_03.wav",
+      "/samples/llamadas/piano_madera_04.wav"
     ],
     "default": [
-      "/samples/llamadas/piano_bass_open_01.wav",
-      "/samples/llamadas/piano_bass_open_02.wav",
-      "/samples/llamadas/piano_bass_open_03.wav",
-      "/samples/llamadas/piano_bass_open_04.wav"
+      "/samples/llamadas/piano_abierto_01.wav",
+      "/samples/llamadas/piano_abierto_02.wav",
+      "/samples/llamadas/piano_abierto_03.wav",
+      "/samples/llamadas/piano_abierto_04.wav"
     ]
   }
 }

@@ -9,6 +9,24 @@ Genera candombe simbolico (`chico`, `repique`, `piano`) con un Transformer enmas
 - **Generacion** (`src/generate.py`): decodificacion iterativa por confianza. Las reglas del toque no pisan la salida: entran como celdas fijas (chico) y como mascaras de clases permitidas (`src/candombe_rules.py`). Con el mismo modelo se puede generar desde cero, completar un tambor sobre otros fijos o humanizar el timing.
 - **Reglas** (`src/candombe_rules.py`): patron canonico del chico, motor por reglas con secciones (fallback de la API y corpus sintetico) y restricciones.
 
+## Toques madre
+
+Los patrones de `src/toques.py` son transcripciones publicadas, con la fuente al lado de cada uno:
+
+| Toque | Barrio | Carácter documentado | Tempo típico | Chico | Piano |
+|---|---|---|---|---|---|
+| **Cuareim** | Barrio Sur | El más pausado y "asentado"; piano simple y estable; acento en chico y repique | ~124 BPM | de tres (palo en el tiempo) | masa en 1, abierto acentuado en la 4.ª semicorchea, figuras simples en el 3.er tiempo; casi no cambia de patrón |
+| **Ansina** | Palermo | Rápido y agresivo; pianos en diálogo entre sí y con los repiques | 130–135 BPM (medido) | de dos (de tres sólo lento) | más golpes en el 3.er tiempo; varía más; repicados más frecuentes |
+| **Gaboto** | Cordón | Más rápido que Ansina, menos estable; piano muy presente | ~136 BPM | de dos | alterna figuras de Cuareim y Ansina; la masa cae siempre en la 2.ª semicorchea del 2.º tiempo; cambia de patrón seguido |
+
+Común a los tres: la madera (clave 3+3+4+2+4) que tocan todos para arrancar, el chico sin golpe en el tiempo y con la mano acentuada en la 2.ª semicorchea, el repique básico (palo 0,3,5,8,11,13 / mano 1,4,7,9,12,15), las llamadas y repicados del repique (empiezan con un slap en la 2.ª semicorchea), el cierre del repique con rim-shots y el golpe final juntos.
+
+**Microtiming medido** (Jure y Rocamora 2022, sobre grabaciones de Ansina y Cuareim): el chico contrae el tiempo; la mano cae en ~0.25 del pulso, el primer palo en ~0.46–0.50 y el último en **0.69–0.73** (más adelantado cuanto más rápido), a mitad de camino entre semicorchea y tresillo. El acento del piano coincide con ese último golpe del chico; el último golpe del repique básico cae casi en tresillo.
+
+**Forma de la llamada** (`default_structure`): madera de todos → llamada del repique → base (con llamada cada 8 compases y una de piano en piezas largas) → señal de cierre del repique (la cuerda baja el volumen) → golpe final. Con "subir la llamada" arranca ~12% más lento y sube hasta el tempo del toque, con más energía (Jure y Rocamora 2018).
+
+Fuentes: L. Jure y M. Rocamora, *Microtiming in the rhythmic structure of Candombe drumming* (2022) y *Subir la llamada* (2018); L. Nunes, M. Rocamora, L. Jure y L. Biscainho, ISMIR 2015; C. T. Sutton, *The Candombe Drumming of Uruguay* (Univ. of Miami, 2013), que incluye transcripciones de L. Ferreira (*Los tambores del candombe*, 1997) y de Aquiles Pintos. Las transcripciones son formas básicas: los tamborileros agregan golpes fantasma y variantes, y "cada uno tiene su toque" (Álvaro Salas, en Sutton).
+
 ## Quick start (local)
 ```bash
 uv venv --python 3.10 .venv && source .venv/bin/activate
@@ -16,7 +34,7 @@ uv pip install -r requirements-dev.txt      # o: pip install -r requirements-dev
 pytest                                      # tests
 uvicorn src.app:app --reload --port 8000    # abrir http://localhost:8000
 ```
-Sin checkpoint en `MODEL_PATH` (por defecto `models/candombe_v2.pt`), la API usa el motor por reglas.
+Sin checkpoint en `MODEL_PATH` (por defecto `models/candombe_v3.pt`), la API usa el motor por reglas.
 
 ## Datos
 
@@ -45,7 +63,7 @@ python src/build_synthetic_corpus.py --microtiming-profile data/analysis/microti
 ## Entrenamiento
 ```bash
 python src/train.py --data-glob "data/processed/synthetic/*.npz@1,data/processed/candombe_dataset/*.npz@4" --epochs 30
-cp models/candombe_v2_best.pt models/candombe_v2.pt
+cp models/candombe_v3_best.pt models/candombe_v3.pt
 ```
 - `patron@peso` sobremuestrea una fuente (dar mas peso a lo real que a lo sintetico).
 - Separacion train/val por archivo, AdamW con warmup + coseno, early stopping; guarda `_best.pt` (con su config) y `_history.json`.
@@ -53,18 +71,18 @@ cp models/candombe_v2_best.pt models/candombe_v2.pt
 
 ## Evaluacion
 ```bash
-python src/evaluate.py --checkpoint models/candombe_v2.pt --reference-glob "data/processed/candombe_dataset/*.npz" \
+python src/evaluate.py --checkpoint models/candombe_v3.pt --reference-glob "data/processed/candombe_dataset/*.npz" \
     --corpus-glob "data/processed/synthetic/*.npz" --n 64 --bars 8 --out reports/eval.json
 ```
 Compara modelo, reglas y referencia: conformidad del chico, apoyo del piano, llamadas, divergencias de posicion/intensidad/articulacion, distancia de microtiming, diversidad y **copy_rate** (compases copiados textuales del corpus: cerca de 1 = memoriza en vez de componer).
 
 ## Pruebas de escucha a ciegas
 ```bash
-python src/listening_test.py build --checkpoint models/candombe_v2.pt --reference-glob "data/processed/candombe_dataset/*.npz"
+python src/listening_test.py build --checkpoint models/candombe_v3.pt --reference-glob "data/processed/candombe_dataset/*.npz"
 # compartir data/listening_test/clips/ y ratings.csv (groove, autenticidad, interes de 1 a 5); guardar key.json
 python src/listening_test.py score --ratings oyente1.csv oyente2.csv
 ```
-Para escuchar una generacion sin el navegador: `python src/render_audio.py --checkpoint models/candombe_v2.pt --bars 8 --out toque.wav`.
+Para escuchar una generacion sin el navegador: `python src/render_audio.py --checkpoint models/candombe_v3.pt --bars 8 --out toque.wav`.
 
 ## API
 ```bash
@@ -72,12 +90,12 @@ curl "http://localhost:8000/generate?tempo=104&bars=8&density=0.6&structure=intr
 ```
 | Parametro | Por defecto | Que hace |
 |---|---|---|
-| `tempo`, `bars` | 90, 4 | BPM (50-220), compases (4-32) |
-| `seed` | `clave` | `clave`: el repique abre con la clave en la madera; `energia`: +densidad; `base`: -densidad |
+| `tempo`, `bars` | el del toque, 16 | BPM (50-220), compases (4-32) |
 | `temperature`, `top_p` | 0.9, 0.92 | Variacion del muestreo |
 | `density` | 0.55 | Carga ritmica (condiciona al modelo, no es una moneda al azar) |
 | `structure` | forma de llamada | Secciones por compas, separadas por coma: `base`, `intro`, `llamada_repique`, `llamada_piano`, `cierre` |
-| `style` | - | `montevideo`, `cuareim`, `ansina`, `cordon` (sirve cuando haya datos etiquetados) |
+| `style` | `ansina` | Toque madre: `cuareim`, `ansina`, `gaboto` (acepta `cordon`) |
+| `subir` | false | Subir la llamada: arranca más lento y sube; la respuesta trae `tempo_curve` y `dynamics` por compás |
 | `lock_chico`, `strict_rules` | true | Chico fijo, restricciones del toque |
 | `palmas` | false | Palmas de clave encima (no son parte de una llamada) |
 | `repiques` | 1 | Lineas de repique distintas (1-4), una por repiquero; los eventos traen `voice` |
@@ -85,15 +103,15 @@ curl "http://localhost:8000/generate?tempo=104&bars=8&density=0.6&structure=intr
 | `guidance` | 1.0 | >1 refuerza el condicionamiento (classifier-free guidance) |
 | `random_seed` | - | Reproducibilidad |
 
-La respuesta (`version: 2`) trae por evento `offset_ms` (microtiming) y `articulation`, y la `random_seed` usada (pasarla de nuevo repite el resultado). `/health` informa si hay modelo cargado.
+`GET /toques` devuelve los tres toques con su descripción y tempo. La respuesta de `/generate` (`version: 3`) trae por evento `offset_ms` (microtiming) y `articulation`, y la `random_seed` usada (pasarla de nuevo repite el resultado). `/health` informa si hay modelo cargado.
 
 `POST /regenerate` rehace una parte de un resultado anterior y deja fijo el resto: mismo cuerpo que los parametros de `/generate` (en JSON) mas `events` (los del resultado anterior), `keep_instruments` (tambores a mantener) y/o `regenerate_bars` (indices de compases a rehacer, desde 0).
 
 ## Frontend (desfile de llamadas)
-- Un boton **Tocar/Parar** y cuatro controles: tempo, duracion (8/16/32 compases), tamaño de la cuerda (chica 3/2/1, mediana 6/3/2, grande 10/4/3 chicos/repiques/pianos) e intensidad.
-- **Forma de llamada automatica**: los repiques marcan la clave en la madera solos, la llamada de repique arranca el toque, la base sigue con una llamada cada 8 compases (y una de piano en piezas largas) y cierra.
+- Elegir el **toque** (Cuareim, Ansina o Gaboto; ajusta el tempo típico), un boton **Tocar/Parar** y cuatro controles: tempo, duracion (8/16/32 compases), tamaño de la cuerda (chica 3/2/1, mediana 6/3/2, grande 10/4/3 chicos/repiques/pianos) e intensidad.
+- **Forma de llamada automatica**: ver "Toques madre" arriba.
 - **Cuerda real**: cada tamborilero tiene su lugar en el estereo, su afinacion y su forma de caer en el tiempo; cada repiquero improvisa su propia linea (el modelo completa repiques distintos sobre el mismo chico y piano).
-- **La cuerda pasa frente a vos** (se acerca, pasa y se aleja) y **subir la llamada** (acelera 5% de a poco). Reverberacion de calle, compresion suave y limitador.
+- **La cuerda pasa frente a vos** (se acerca, pasa y se aleja) y **subir la llamada** (arranca ~12% más lento y sube al tempo del toque, con más energía; la curva la decide el backend). Reverberacion de calle, compresion suave y limitador.
 - **Otra llamada**, **Nuevos repiques** (mantiene chico y piano), **Descargar WAV** (mismo sonido que se escucha) y **MIDI** (con mapa de tempo, reimportable con `data_preprocess.py`).
 - "Mas opciones": improvisacion, swing (microtiming), calle, mezcla por tambor, chico fijo/libre y semilla.
 - Los golpes se programan justo antes de sonar (lookahead), no todos al principio.

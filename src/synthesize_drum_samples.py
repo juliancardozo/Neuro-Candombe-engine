@@ -105,26 +105,33 @@ def render_stroke(stroke: Stroke, rng: np.random.Generator) -> np.ndarray:
 # Tunings are typical, not measured: candombe drums are tuned tight and high.
 CHICO, REPIQUE, PIANO = 330.0, 225.0, 108.0
 
+# Piano strokes follow the players' names (see toques.py): abierto = open stick,
+# apagado = muted stick, masa = flat hand pressed into the head (dry and heavy),
+# mano = open hand, madera = stick on the shell. The repique "mano" is a slap.
+PIANO_SHELL = (520.0, 960.0, 1500.0, 2200.0)
 ARTICULATIONS = {
     "chico": {
         "palo": Stroke(CHICO, 0.32, 0.075, 0.7, 0.05, click=0.35, hand=0.0, shell=0.1),
-        "mano": Stroke(CHICO, 0.22, 0.045, 0.4, 0.025, click=0.0, hand=0.35, shell=0.04, level=0.7),
+        "mano": Stroke(CHICO, 0.22, 0.045, 0.4, 0.025, click=0.0, hand=0.35, shell=0.04, level=0.8),
+        "madera": Stroke(CHICO, 0.15, 0.02, 0.3, 0.0, click=0.25, hand=0.0, shell=1.0, membrane=0.12,
+                         shell_freqs=(1500.0, 2450.0, 3600.0, 4700.0), shell_decay=0.022, level=0.8),
     },
     "repique": {
         "palo": Stroke(REPIQUE, 0.6, 0.15, 0.68, 0.06, click=0.35, hand=0.0, shell=0.1),
-        "mano": Stroke(REPIQUE, 0.32, 0.07, 0.4, 0.03, click=0.0, hand=0.35, shell=0.04, level=0.65),
+        # A slap: sharper and shorter than the open stick stroke, and louder [S13].
+        "mano": Stroke(REPIQUE, 0.25, 0.05, 0.85, 0.03, click=0.45, hand=0.12, shell=0.04),
         "madera": Stroke(REPIQUE, 0.18, 0.02, 0.3, 0.0, click=0.25, hand=0.0, shell=1.0, membrane=0.15,
                          shell_freqs=(1050.0, 1720.0, 2600.0, 3400.0), shell_decay=0.03, level=0.9),
+        "rimshot": Stroke(REPIQUE, 0.5, 0.12, 0.8, 0.07, click=0.7, hand=0.0, shell=0.55,
+                          shell_freqs=(1150.0, 1900.0, 2800.0, 3600.0), shell_decay=0.05),
     },
     "piano": {
-        "bass_open": Stroke(PIANO, 1.1, 0.32, 0.55, 0.08, click=0.22, hand=0.0, shell=0.08,
-                            shell_freqs=(520.0, 960.0, 1500.0, 2200.0)),
-        "bass_muted": Stroke(PIANO, 0.35, 0.07, 0.45, 0.035, click=0.2, hand=0.2, shell=0.06,
-                             shell_freqs=(520.0, 960.0, 1500.0, 2200.0), level=0.85),
-        "stick_open": Stroke(PIANO, 0.8, 0.22, 0.45, 0.05, click=0.15, hand=0.0, shell=0.06,
-                             shell_freqs=(520.0, 960.0, 1500.0, 2200.0), level=0.7),
-        "stick_closed": Stroke(PIANO, 0.16, 0.02, 0.3, 0.0, click=0.25, hand=0.0, shell=1.0, membrane=0.2,
-                               shell_freqs=(780.0, 1380.0, 2150.0, 2900.0), shell_decay=0.03, level=0.6),
+        "abierto": Stroke(PIANO, 1.1, 0.32, 0.55, 0.08, click=0.22, hand=0.0, shell=0.08, shell_freqs=PIANO_SHELL),
+        "apagado": Stroke(PIANO, 0.25, 0.045, 0.45, 0.03, click=0.3, hand=0.0, shell=0.08, shell_freqs=PIANO_SHELL, level=0.75),
+        "masa": Stroke(PIANO, 0.4, 0.085, 0.35, 0.04, click=0.08, hand=0.35, shell=0.05, shell_freqs=PIANO_SHELL, level=0.95),
+        "mano": Stroke(PIANO, 0.9, 0.25, 0.4, 0.05, click=0.0, hand=0.25, shell=0.04, shell_freqs=PIANO_SHELL, level=0.75),
+        "madera": Stroke(PIANO, 0.16, 0.02, 0.3, 0.0, click=0.25, hand=0.0, shell=1.0, membrane=0.2,
+                         shell_freqs=(780.0, 1380.0, 2150.0, 2900.0), shell_decay=0.03, level=0.75),
     },
 }
 

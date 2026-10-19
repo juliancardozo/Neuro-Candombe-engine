@@ -1,172 +1,247 @@
-"""Candombe rules: canonical patterns, a rule-based renderer and generation constraints.
+"""Candombe rules built on the documented toques (toques.py).
 
-The renderer produces section-aware pieces with articulations and microtiming.
-It feeds the synthetic corpus and is the API fallback when no checkpoint is
-loaded. The constraint helpers express rules as fixed cells / allowed classes
-for the model's sampler instead of overwriting its output afterwards.
+- render_piece: a rule-based llamada in a given toque (Cuareim, Ansina or
+  Gaboto). It feeds the synthetic corpus and is the API fallback.
+- Constraint helpers for the model's sampler: they only fill cells the caller
+  left free, so explicitly fixed cells always win.
 """
 
 from typing import Dict, List, Optional, Sequence
 
 import numpy as np
 
-from build_chico_locked_dataset import PIANO_SUPPORT, REPIQUE_SUPPORT
-from build_piano_grounded_dataset import PIANO_VARIATIONS, REPIQUE_REFERENCE
-from build_repique_locked_dataset import CHICO_TEMPLATE, PIANO_TEMPLATES, REPIQUE_TEMPLATES, clamp, jitter
-from microtiming import DEFAULT_PROFILE, sample_offset
+from build_repique_locked_dataset import REPIQUE_TEMPLATES, clamp
 from representation import (
     INSTRUMENTS,
+    N_ART,
     N_INSTR,
     N_VEL,
     STEPS_PER_BAR,
+    STEPS_PER_BEAT,
     Piece,
     articulation_id,
+    default_structure,
     make_piece,
     velocity_to_class,
+)
+from toques import (
+    CLAVE,
+    LEVELS,
+    PIANO_REPICADOS,
+    REPIQUE_BASICO,
+    REPIQUE_CIERRE,
+    REPIQUE_LLAMADA,
+    REPIQUE_REPICADO,
+    TIMING_SPREAD,
+    Pattern,
+    Toque,
+    chico_pattern,
+    get_toque,
+    groove_offsets,
+    tempo_curve,
 )
 
 CHICO, REPIQUE, PIANO = range(N_INSTR)
 
-# Chico cadence per beat: rest, mano, palo, palo.
-CHICO_BEAT = (None, "mano", "palo", "palo")
-CHICO_ARTICULATION = tuple(CHICO_BEAT[step % 4] for step in range(STEPS_PER_BAR))
-
-CLAVE_STEPS = (0, 3, 6, 10, 12)
-CLAVE_VELOCITIES = (80, 66, 76, 66, 90)
-REPIQUE_CALL = ((11, 104), (13, 96), (14, 112), (15, 92))
-PIANO_CALL = ((1, 70, "stick_open"), (9, 74, "stick_open"), (14, 60, "stick_closed"))
-PIANO_CLOSE = ((9, 76, "stick_open"), (13, 80, "stick_open"), (15, 62, "stick_closed"))
-
-PIANO_POOL = tuple(PIANO_TEMPLATES) + tuple(PIANO_VARIATIONS) + tuple(PIANO_SUPPORT)
-REPIQUE_POOL = tuple(REPIQUE_TEMPLATES) + tuple(REPIQUE_REFERENCE) + tuple(REPIQUE_SUPPORT)
+# Bars where the base keeps running underneath.
+GROOVE_SECTIONS = ("base", "llamada_repique", "llamada_piano", "cierre")
 
 
-def piano_articulation(step_in_bar: int, velocity: int) -> str:
-    if step_in_bar in (0, 8):
-        return "bass_open"
-    if step_in_bar in (3, 4, 11, 12):
-        return "bass_muted"
-    return "stick_open" if velocity >= 55 else "stick_closed"
+def _team_phrases() -> List[Pattern]:
+    """The project's earlier repique templates, kept as extra improvised phrases."""
+    phrases = []
+    for index, template in enumerate(REPIQUE_TEMPLATES):
+        events = []
+        for step, hit in enumerate(template):
+            if hit:
+                level = "accent" if hit["velocity"] >= 100 else "normal" if hit["velocity"] >= 70 else "light"
+                events.append((step, "palo" if hit["velocity"] >= 60 else "mano", level))
+        phrases.append(Pattern(f"Frase {index + 1}", "plantillas del proyecto", tuple(events)))
+    return phrases
 
 
-def repique_articulation(velocity: int) -> str:
-    return "mano" if velocity < 60 else "palo"
+REPIQUE_PHRASES = tuple(_team_phrases())
+FINAL_HIT = {
+    CHICO: Pattern("Final", "S13 ex.4.7", ((0, "palo", "accent"),)),
+    REPIQUE: Pattern("Final", "S13 ex.4.7", ((0, "rimshot", "accent"),)),
+    PIANO: Pattern("Final", "S13 ex.4.7", ((0, "masa", "accent"),)),
+}
 
+
+def level_class(level: str) -> int:
+    return int(velocity_to_class(np.array([LEVELS[level]]))[0])
+
+
+def cierre_index(structure: Sequence[str], bar: int) -> int:
+    """0 for the first bar of the closing signal, 1 for the second."""
+    previous = bar - 1
+    return 1 if previous >= 0 and structure[previous] == "cierre" else 0
+
+
+# --- rule-based llamada ---------------------------------------------------------------------
 
 def random_structure(rng: np.random.Generator, bars: int) -> List[str]:
-    """Plausible section plan: intro, base with calls, and a closing bar."""
-    structure = ["base"] * bars
-    intro_bars = int(rng.integers(1, 3)) if bars >= 4 else 1
-    for bar_index in range(min(intro_bars, bars)):
-        structure[bar_index] = "intro"
-    structure[-1] = "cierre"
-    for bar_index in range(intro_bars, bars - 1):
-        roll = rng.random()
-        if roll < 0.22:
-            structure[bar_index] = "llamada_repique"
-        elif roll < 0.38:
-            structure[bar_index] = "llamada_piano"
+    """The llamada form with a few extra calls sprinkled in, for corpus variety."""
+    structure = default_structure(bars)
+    for bar, section in enumerate(structure):
+        if section == "base" and structure[bar - 1] == "base":
+            roll = rng.random()
+            if roll < 0.08:
+                structure[bar] = "llamada_repique"
+            elif roll < 0.16:
+                structure[bar] = "llamada_piano"
     return structure
+
+
+def _repique_pattern(rng: np.random.Generator, section: str, structure, bar: int, density: float) -> Pattern:
+    if section == "intro":
+        return CLAVE
+    if section == "llamada_repique":
+        return REPIQUE_LLAMADA
+    if section == "cierre":
+        return REPIQUE_CIERRE[cierre_index(structure, bar)]
+    if section == "final":
+        return FINAL_HIT[REPIQUE]
+    # Base: the repique alternates its primary pattern, madera cycles and phrases [J22].
+    options = [(REPIQUE_BASICO, 0.45 - 0.2 * density), (CLAVE, 0.12), (REPIQUE_REPICADO, 0.1 + 0.2 * density)]
+    options += [(phrase, (0.33 + 0.1 * density) / len(REPIQUE_PHRASES)) for phrase in REPIQUE_PHRASES]
+    weights = np.array([w for _, w in options])
+    return options[int(rng.choice(len(options), p=weights / weights.sum()))][0]
+
+
+def _choose_base(rng: np.random.Generator, toque: Toque) -> Pattern:
+    weights = np.array([p.weight for p in toque.piano_bases])
+    return toque.piano_bases[int(rng.choice(len(weights), p=weights / weights.sum()))]
 
 
 def render_piece(
     rng: np.random.Generator,
     structure: Sequence[str],
     density: float = 0.5,
-    profile: Optional[Dict[str, list]] = None,
     tempo: Optional[float] = None,
     style: Optional[str] = None,
+    subir: bool = False,
+    tempos: Optional[Sequence[float]] = None,
+    profile=None,  # kept for callers of the old signature; timing comes from toques
 ) -> Piece:
-    profile = profile or DEFAULT_PROFILE
+    """`tempos` (one per bar) overrides the tempo curve derived from `subir`."""
+    toque = get_toque(style)
+    tempo = float(tempo or toque.tempo)
     bars = len(structure)
+    curve = list(tempos) if tempos is not None else tempo_curve(toque, bars, tempo, subir, rng)
     steps = bars * STEPS_PER_BAR
     velocities = np.zeros((steps, N_INSTR), dtype=np.int32)
     articulation = np.full((steps, N_INSTR), -1, dtype=np.int64)
+    offsets = np.full((steps, N_INSTR), np.nan)
     density = float(np.clip(density, 0.0, 1.0))
 
-    def put(step: int, inst: int, velocity: int, art_name: str) -> None:
-        velocities[step, inst] = clamp(int(velocity), 1, 127)
-        articulation[step, inst] = articulation_id(INSTRUMENTS[inst], art_name)
+    def put(bar: int, inst: int, pattern: Pattern, scale: float = 1.0) -> None:
+        start = bar * STEPS_PER_BAR
+        groove = groove_offsets(toque, INSTRUMENTS[inst], curve[bar])
+        for step, art, level in pattern.events:
+            velocity = clamp(int(rng.normal(LEVELS[level] * scale, 5)), 1, 127)
+            velocities[start + step, inst] = velocity
+            articulation[start + step, inst] = articulation_id(INSTRUMENTS[inst], art)
+            mean = 0.0 if art == "madera" or pattern is FINAL_HIT[inst] else groove[step % STEPS_PER_BEAT]
+            offsets[start + step, inst] = float(np.clip(rng.normal(mean, TIMING_SPREAD[INSTRUMENTS[inst]]), -0.4, 0.4))
 
-    piano_template = PIANO_POOL[int(rng.integers(0, len(PIANO_POOL)))]
-    for bar_index, section in enumerate(structure):
-        offset = bar_index * STEPS_PER_BAR
-
-        for step_in_bar, hit in enumerate(CHICO_TEMPLATE):
-            if hit:
-                put(offset + step_in_bar, CHICO, jitter(hit["velocity"], 3, rng), CHICO_ARTICULATION[step_in_bar])
-
-        # Piano keeps a template for a few bars before varying, like a real player.
-        if rng.random() < 0.35:
-            piano_template = PIANO_POOL[int(rng.integers(0, len(PIANO_POOL)))]
-        for step_in_bar, hit in enumerate(piano_template):
-            if not hit:
-                continue
-            if hit["velocity"] <= 60 and rng.random() > 0.35 + 0.6 * density:
-                continue
-            velocity = jitter(hit["velocity"], 6, rng)
-            put(offset + step_in_bar, PIANO, velocity, piano_articulation(step_in_bar, velocity))
-
+    base = _choose_base(rng, toque)
+    for bar, section in enumerate(structure):
+        # Under the repique's closing signal the cuerda plays softer [S13].
+        support = 0.75 if section == "cierre" else 1.0
         if section == "intro":
-            for step_in_bar, velocity in zip(CLAVE_STEPS, CLAVE_VELOCITIES):
-                put(offset + step_in_bar, REPIQUE, jitter(velocity, 6, rng), "madera")
+            for inst in range(N_INSTR):
+                put(bar, inst, CLAVE)
+            continue
+        if section == "final":
+            for inst in range(N_INSTR):
+                put(bar, inst, FINAL_HIT[inst])
             continue
 
-        repique_template = REPIQUE_POOL[int(rng.integers(0, len(REPIQUE_POOL)))]
-        last_step = 11 if section in ("llamada_repique", "cierre") else STEPS_PER_BAR
-        for step_in_bar, hit in enumerate(repique_template[:last_step]):
-            if not hit:
-                continue
-            if hit["velocity"] <= 62 and rng.random() > 0.3 + 0.7 * density:
-                continue
-            if section == "llamada_piano" and hit["velocity"] < 90 and rng.random() < 0.5:
-                continue  # repique gives room while the piano calls
-            velocity = jitter(hit["velocity"], 8, rng)
-            put(offset + step_in_bar, REPIQUE, velocity, repique_articulation(velocity))
+        put(bar, CHICO, chico_pattern(toque, curve[bar]), support)
+        put(bar, REPIQUE, _repique_pattern(rng, section, structure, bar, density))
 
-        # Extra ghost strokes on free off-beats when the density knob is high.
-        for step_in_bar in range(1, last_step, 2):
-            step = offset + step_in_bar
-            if velocities[step, REPIQUE] == 0 and rng.random() < 0.25 * max(0.0, density - 0.4):
-                put(step, REPIQUE, jitter(48, 6, rng), "mano")
+        if rng.random() < toque.piano_change:
+            base = _choose_base(rng, toque)
+        repicado = section == "llamada_piano" or (section == "base" and rng.random() < toque.piano_repicado * (0.5 + density))
+        if repicado:
+            put(bar, PIANO, PIANO_REPICADOS[int(rng.integers(0, len(PIANO_REPICADOS)))], support)
+        else:
+            put(bar, PIANO, base, support)
 
-        if section in ("llamada_repique", "cierre"):
-            for step_in_bar, velocity in REPIQUE_CALL:
-                put(offset + step_in_bar, REPIQUE, jitter(velocity, 6, rng), "palo")
-        if section == "llamada_piano":
-            for step_in_bar, velocity, art_name in PIANO_CALL:
-                put(offset + step_in_bar, PIANO, jitter(velocity, 6, rng), art_name)
-        if section == "cierre":
-            for step_in_bar, velocity, art_name in PIANO_CLOSE:
-                put(offset + step_in_bar, PIANO, jitter(velocity, 6, rng), art_name)
+        # Players add ghost notes to the basic forms [J22]; more with density.
+        start = bar * STEPS_PER_BAR
+        for step in range(STEPS_PER_BAR):
+            for inst, art, chance in ((REPIQUE, "mano", 0.18), (PIANO, "mano", 0.08)):
+                if velocities[start + step, inst] == 0 and rng.random() < chance * density:
+                    velocities[start + step, inst] = clamp(int(rng.normal(LEVELS["ghost"], 4)), 1, 127)
+                    articulation[start + step, inst] = articulation_id(INSTRUMENTS[inst], art)
+                    groove = groove_offsets(toque, INSTRUMENTS[inst], curve[bar])
+                    offsets[start + step, inst] = float(rng.normal(groove[step % 4], TIMING_SPREAD[INSTRUMENTS[inst]]))
 
-    offsets = np.full((steps, N_INSTR), np.nan, dtype=np.float64)
-    for step in range(steps):
-        for inst in range(N_INSTR):
-            if velocities[step, inst] > 0:
-                offsets[step, inst] = sample_offset(profile, INSTRUMENTS[inst], step, rng)
-
-    return make_piece(velocities, offsets, articulation, list(structure), tempo=tempo, style=style, source="rules")
+    return make_piece(velocities, offsets, articulation, list(structure), tempo=tempo, style=toque.key, source="rules")
 
 
-# --- constraints for the model sampler -------------------------------------------------
+# --- constraints for the model sampler ------------------------------------------------------
 
 def empty_fixed(steps: int) -> Dict[str, np.ndarray]:
     """Fixed cells: -1 means free, otherwise the value the sampler must keep."""
     return {key: np.full((steps, N_INSTR), -1, dtype=np.int64) for key in ("vel", "off", "art")}
 
 
-def lock_chico(fixed: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
-    """Fix the chico cadence (hits and articulation); its microtiming stays free."""
-    steps = fixed["vel"].shape[0]
-    for step in range(steps):
-        step_in_bar = step % STEPS_PER_BAR
-        hit = CHICO_TEMPLATE[step_in_bar]
-        if hit:
-            fixed["vel"][step, CHICO] = int(velocity_to_class(np.array([hit["velocity"]]))[0])
-            fixed["art"][step, CHICO] = articulation_id("chico", CHICO_ARTICULATION[step_in_bar])
+def _fill_bar(fixed: Dict[str, np.ndarray], bar: int, inst: int, pattern: Optional[Pattern], scale: float = 1.0) -> None:
+    """Fix one instrument for a whole bar to `pattern` (None = silence), free cells only."""
+    start = bar * STEPS_PER_BAR
+    if start >= fixed["vel"].shape[0]:
+        return
+    events = {step: (art, level) for step, art, level in (pattern.events if pattern else ())}
+    for step in range(STEPS_PER_BAR):
+        cell = start + step
+        if cell >= fixed["vel"].shape[0] or fixed["vel"][cell, inst] >= 0:
+            continue
+        if step in events:
+            art, level = events[step]
+            fixed["vel"][cell, inst] = level_class(level) if scale >= 1.0 else max(1, level_class(level) - 1)
+            fixed["art"][cell, inst] = articulation_id(INSTRUMENTS[inst], art)
         else:
-            fixed["vel"][step, CHICO] = 0
+            fixed["vel"][cell, inst] = 0
+
+
+def lock_chico(
+    fixed: Dict[str, np.ndarray],
+    structure: Optional[Sequence[str]] = None,
+    style: Optional[str] = None,
+    tempos: Optional[Sequence[float]] = None,
+) -> Dict[str, np.ndarray]:
+    """Fix the chico: its pattern follows the toque and each bar's tempo; its
+    microtiming stays free for the model."""
+    toque = get_toque(style)
+    bars = fixed["vel"].shape[0] // STEPS_PER_BAR
+    structure = list(structure) if structure is not None else ["base"] * bars
+    for bar in range(bars):
+        section = structure[bar] if bar < len(structure) else "base"
+        if section in ("intro", "final"):
+            continue  # set by apply_form
+        tempo = tempos[bar] if tempos is not None else toque.tempo
+        _fill_bar(fixed, bar, CHICO, chico_pattern(toque, tempo), 0.75 if section == "cierre" else 1.0)
+    return fixed
+
+
+def apply_form(fixed: Dict[str, np.ndarray], structure: Sequence[str], lead_repique: bool = True) -> Dict[str, np.ndarray]:
+    """The parts of a llamada that are signals, not improvisation: everyone on the
+    madera in the intro, the repique's call and closing signal, the final hit.
+    A non-lead repique plays madera while the lead gives the signals [S13]."""
+    for bar, section in enumerate(structure):
+        if section == "intro":
+            for inst in range(N_INSTR):
+                _fill_bar(fixed, bar, inst, CLAVE)
+        elif section == "final":
+            for inst in range(N_INSTR):
+                _fill_bar(fixed, bar, inst, FINAL_HIT[inst])
+        elif section == "llamada_repique":
+            _fill_bar(fixed, bar, REPIQUE, REPIQUE_LLAMADA if lead_repique else CLAVE)
+        elif section == "cierre":
+            _fill_bar(fixed, bar, REPIQUE, REPIQUE_CIERRE[cierre_index(structure, bar)] if lead_repique else CLAVE, 1.0 if lead_repique else 0.5)
     return fixed
 
 
@@ -181,23 +256,37 @@ def fix_from_piece(fixed: Dict[str, np.ndarray], piece: Piece, instruments: Sequ
     return fixed
 
 
-def allowed_velocity_mask(steps: int, structure: Sequence[str]) -> np.ndarray:
-    """Hard musical rules as an allowed-class mask (steps, 3, N_VEL).
+def allowed_masks(steps: int, structure: Sequence[str], style: Optional[str] = None):
+    """Invariants of the toque as allowed classes for the sampler.
 
-    Kept deliberately small: everything else is the model's decision.
-      - piano must sound on beat 1 of every bar (it anchors the cuerda);
-      - in llamada_repique / cierre bars the repique must play the call
-        accents (no silence or ghost strokes there); how it fills the rest
-        of the bar is up to the model.
+    Velocity mask (steps, 3, N_VEL) and articulation mask (steps, 3, max_art):
+      - in groove bars the piano plays its masa on the downbeat and the accented
+        open stroke on the 4th sixteenth, "one of the most important features of
+        the candombe rhythm" [J22];
+      - in Gaboto the masa always falls on the 2nd sixteenth of beat two [S13].
+    Piano repicado bars (llamada_piano) are left free.
     """
-    allowed = np.ones((steps, N_INSTR, N_VEL), dtype=bool)
-    for bar_index, section in enumerate(structure):
-        offset = bar_index * STEPS_PER_BAR
-        if offset >= steps:
-            break
-        allowed[offset, PIANO, 0] = False
-        if section in ("llamada_repique", "cierre"):
-            for step_in_bar, _ in REPIQUE_CALL:
-                if offset + step_in_bar < steps:
-                    allowed[offset + step_in_bar, REPIQUE, :2] = False
-    return allowed
+    toque = get_toque(style)
+    vel = np.ones((steps, N_INSTR, N_VEL), dtype=bool)
+    art = np.ones((steps, N_INSTR, max(N_ART)), dtype=bool)
+    for inst in range(N_INSTR):
+        art[:, inst, N_ART[inst]:] = False
+    masa = articulation_id("piano", "masa")
+    abierto = articulation_id("piano", "abierto")
+
+    def require(step: int, articulation_index: int, min_class: int) -> None:
+        if step >= steps:
+            return
+        vel[step, PIANO, :min_class] = False
+        art[step, PIANO, :] = False
+        art[step, PIANO, articulation_index] = True
+
+    for bar, section in enumerate(structure):
+        if section not in ("base", "llamada_repique", "cierre"):
+            continue
+        start = bar * STEPS_PER_BAR
+        require(start, masa, 2)
+        require(start + 3, abierto, 3)
+        if toque.key == "gaboto":
+            require(start + 5, masa, 2)
+    return vel, art

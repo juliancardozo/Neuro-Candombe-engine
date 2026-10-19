@@ -19,7 +19,7 @@ WINDOW_MS = {
 HIT_TYPE_BONUS = {
     "chico": {"accent": 0.12, "pulse": 0.06},
     "repique": {"accent_open": 0.14, "phrase_hit": 0.1, "response": 0.05},
-    "piano": {"bass_open": 0.12, "bass_muted": 0.05},
+    "piano": {"abierto": 0.12, "masa": 0.05},
 }
 
 

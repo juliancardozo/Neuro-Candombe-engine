@@ -32,7 +32,8 @@ def test_generate_endpoint(engine, tmp_path, tiny_model):
     res = client.get("/generate", params={"tempo": 100, "bars": 8, "density": 0.6, "random_seed": 1})
     assert res.status_code == 200
     data = res.json()
-    assert data["version"] == 2 and data["engine"] == engine
+    assert data["version"] == 3 and data["engine"] == engine
+    assert data["style"] == "ansina" and len(data["tempo_curve"]) == 8 and len(data["dynamics"]) == 8
     assert len(data["structure"]) == 8
     drums = [e for e in data["events"] if e["instrument"] != "clave"]
     assert drums and all({"offset_ms", "articulation", "step", "section"} <= set(e) for e in drums)
@@ -46,18 +47,33 @@ def test_structure_and_validation(tmp_path):
     assert res.json()["structure"] == ["base", "cierre", "base", "cierre"]
     assert all(e["instrument"] != "clave" for e in res.json()["events"])
     assert client.get("/generate", params={"structure": "salsa"}).status_code == 422
+    assert client.get("/generate", params={"style": "salsa"}).status_code == 422
+    assert client.get("/generate", params={"style": "cordon"}).json()["style"] == "gaboto"
     assert client.get("/health").json()["model_loaded"] is False
+    toques = client.get("/toques").json()
+    assert [t["key"] for t in toques] == ["cuareim", "ansina", "gaboto"]
+    assert all(t["description"] and t["barrio"] for t in toques)
+
+
+def test_toque_sets_tempo_and_subir_ramps():
+    client = _client("__missing__.pt")
+    cuareim = client.get("/generate", params={"style": "cuareim", "bars": 8, "random_seed": 1}).json()
+    gaboto = client.get("/generate", params={"style": "gaboto", "bars": 8, "random_seed": 1}).json()
+    assert cuareim["tempo"] < gaboto["tempo"]
+    subiendo = client.get("/generate", params={"bars": 12, "subir": True, "random_seed": 1}).json()
+    assert subiendo["tempo_curve"][0] < subiendo["tempo_curve"][-1]
+    assert subiendo["dynamics"][0] < 1.0
 
 
 def test_evaluation_metrics_are_sane():
     rng = np.random.default_rng(0)
-    pieces = [render_piece(rng, random_structure(rng, 8)) for _ in range(12)]
+    pieces = [render_piece(rng, random_structure(rng, 8), style=("cuareim", "ansina", "gaboto")[i % 3]) for i in range(12)]
     report = compare(pieces, pieces, pieces)
     assert report["copy_rate"] == 1.0
     assert report["style_distance"] < 1e-6
     assert report["chico_conformity"] == 1.0
-    assert report["piano_bar_anchor"] > 0.9
-    assert report["call_adherence"] == 1.0
+    assert report["piano_accent"] > 0.85
+    assert report["call_adherence"] > 0.9
     assert 0 < report["diversity"] < 1
 
 
@@ -111,12 +127,15 @@ def test_desfile_entrance_and_repique_voices(engine, tmp_path, tiny_model):
     client = _client(path)
     data = client.get("/generate", params={"bars": 32, "repiques": 3, "random_seed": 4}).json()
     assert data["bars"] == 32 and data["repiques"] == 3
-    assert data["structure"][0] == "intro" and data["structure"][1] == "llamada_repique" and data["structure"][-1] == "cierre"
+    assert data["structure"][:2] == ["intro", "llamada_repique"] and data["structure"][-3:] == ["cierre", "cierre", "final"]
     assert all(e["instrument"] != "clave" for e in data["events"])  # no palmas by default
 
     intro = [e for e in data["events"] if e["step"] < 16]
-    assert intro and all(e["instrument"] == "repique" for e in intro)
+    assert {e["instrument"] for e in intro} == {"chico", "repique", "piano"}  # everyone on the madera
+    assert all(e["articulation"] == "madera" for e in intro)
+    final = [e for e in data["events"] if e["step"] >= 31 * 16]
+    assert sorted({e["step"] for e in final}) == [31 * 16]
     voices = {v: _drum_cells([e for e in data["events"] if e.get("voice") == v], {"repique"}, bars=set(range(2, 32))) for v in range(3)}
     assert voices[0] != voices[1] and voices[1] != voices[2]
-    intro_lines = {v: _drum_cells([e for e in intro if e["voice"] == v]) for v in range(3)}
+    intro_lines = {v: _drum_cells([e for e in intro if e["voice"] == v], {"repique"}) for v in range(3)}
     assert intro_lines[0] == intro_lines[1] == intro_lines[2]

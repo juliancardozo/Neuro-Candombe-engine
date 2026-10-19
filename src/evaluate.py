@@ -4,7 +4,10 @@
         --reference-glob "data/processed/candombe_dataset/*.npz" --n 64 --bars 8
 
 Reports, per system (model / rules / reference):
-  style rules   chico_conformity, piano_bar_anchor, call_adherence
+  style rules   chico_conformity, piano_style_match (bars that are a
+                documented base of the piece's toque, toques.py),
+                piano_accent (masa on 1 + open accent on the 4th sixteenth),
+                call_adherence
   distributions JS divergence to the reference for onset position, velocity
                 class and articulation, per instrument
   microtiming   mean |diff| of per-position mean and std offsets vs reference
@@ -22,7 +25,7 @@ from typing import Dict, List, Optional, Sequence
 
 import numpy as np
 
-from candombe_rules import CHICO_TEMPLATE, REPIQUE_CALL, random_structure, render_piece
+from candombe_rules import random_structure, render_piece
 from representation import (
     ARTICULATIONS,
     INSTRUMENTS,
@@ -35,8 +38,20 @@ from representation import (
     load_piece,
 )
 
+from toques import CHICO_DE_DOS, CHICO_DE_TRES, REPIQUE_LLAMADA, TOQUES, get_toque
+
 CHICO, REPIQUE, PIANO = range(3)
-CHICO_ONSETS = np.array([1 if hit else 0 for hit in CHICO_TEMPLATE])
+
+
+def _onsets(pattern) -> np.ndarray:
+    grid = np.zeros(STEPS_PER_BAR, dtype=bool)
+    grid[[step for step, _, _ in pattern.events]] = True
+    return grid
+
+
+CHICO_ONSETS = (_onsets(CHICO_DE_DOS), _onsets(CHICO_DE_TRES))
+LLAMADA_ONSETS = _onsets(REPIQUE_LLAMADA)
+PIANO_BASES = {key: [_onsets(p) for p in toque.piano_bases] for key, toque in TOQUES.items()}
 
 
 def _hist(values: np.ndarray, bins: int) -> np.ndarray:
@@ -85,35 +100,40 @@ def microtiming_stats(pieces: Sequence[Piece]) -> Dict[str, np.ndarray]:
 
 
 def style_metrics(pieces: Sequence[Piece]) -> Dict[str, float]:
-    chico_match, piano_anchor, bars_total = [], 0, 0
-    call_hits, call_slots = 0, 0
+    chico_match, style_match, accent, call = [], [], [], []
     hits_per_bar = {name: [] for name in INSTRUMENTS}
     offbeat = []
     for piece in pieces:
+        bases = PIANO_BASES[get_toque(piece.style).key] if piece.style else [b for v in PIANO_BASES.values() for b in v]
         for bar in range(piece.bars):
             lo = bar * STEPS_PER_BAR
-            block = piece.vel[lo : lo + STEPS_PER_BAR]
-            chico_match.append(float(np.mean((block[:, CHICO] > 0) == CHICO_ONSETS)))
-            piano_anchor += int(block[0, PIANO] > 0)
-            bars_total += 1
+            block = piece.vel[lo : lo + STEPS_PER_BAR] > 0
+            sid = int(piece.section[lo])
+            section = SECTIONS[sid] if sid < len(SECTIONS) else "base"
             for inst, name in enumerate(INSTRUMENTS):
-                hits_per_bar[name].append(int((block[:, inst] > 0).sum()))
-            rep_hits = np.flatnonzero(block[:, REPIQUE] > 0)
+                hits_per_bar[name].append(int(block[:, inst].sum()))
+            if section in ("intro", "final"):
+                continue
+            chico_match.append(max(float(np.mean(block[:, CHICO] == ref)) for ref in CHICO_ONSETS))
+            rep_hits = np.flatnonzero(block[:, REPIQUE])
             if rep_hits.size:
                 offbeat.append(float(np.mean(rep_hits % STEPS_PER_BEAT != 0)))
-            section = int(piece.section[lo])
-            if section < len(SECTIONS) and SECTIONS[section] in ("llamada_repique", "cierre"):
-                for step_in_bar, _ in REPIQUE_CALL:
-                    call_slots += 1
-                    call_hits += int(block[step_in_bar, REPIQUE] > 0)
+            if section == "llamada_repique":
+                call.append(float(np.mean(block[:, REPIQUE] == LLAMADA_ONSETS)))
+            if section == "base":
+                # A documented base, allowing one added or missing stroke (ghost notes).
+                style_match.append(float(min(int(np.sum(block[:, PIANO] != ref)) for ref in bases) <= 1))
+                accent.append(float(piece.vel[lo, PIANO] > 0 and piece.vel[lo + 3, PIANO] >= 3))
+    mean = lambda values: float(np.mean(values)) if values else float("nan")  # noqa: E731
     metrics = {
-        "chico_conformity": float(np.mean(chico_match)) if chico_match else 0.0,
-        "piano_bar_anchor": piano_anchor / max(bars_total, 1),
-        "repique_offbeat_ratio": float(np.mean(offbeat)) if offbeat else 0.0,
-        "call_adherence": call_hits / call_slots if call_slots else float("nan"),
+        "chico_conformity": mean(chico_match),
+        "piano_style_match": mean(style_match),
+        "piano_accent": mean(accent),
+        "repique_offbeat_ratio": mean(offbeat),
+        "call_adherence": mean(call),
     }
     for name in INSTRUMENTS:
-        metrics[f"hits_per_bar_{name}"] = float(np.mean(hits_per_bar[name])) if hits_per_bar[name] else 0.0
+        metrics[f"hits_per_bar_{name}"] = mean(hits_per_bar[name])
     return metrics
 
 
@@ -175,14 +195,20 @@ def generate_sets(checkpoint: Optional[str], n: int, bars: int, seed: int, tempe
     rng = np.random.default_rng(seed)
     structures = [random_structure(rng, bars) for _ in range(n)]
     densities = rng.uniform(0.3, 0.8, size=n)
-    tempos = rng.uniform(85, 130, size=n)
-    sets = {"rules": [render_piece(np.random.default_rng(seed + i), structures[i], float(densities[i]), tempo=float(tempos[i])) for i in range(n)]}
+    styles = [list(TOQUES)[i % len(TOQUES)] for i in range(n)]
+    tempos = [float(rng.uniform(*TOQUES[style].tempo_range)) for style in styles]
+    sets = {
+        "rules": [
+            render_piece(np.random.default_rng(seed + i), structures[i], float(densities[i]), tempo=tempos[i], style=styles[i])
+            for i in range(n)
+        ]
+    }
     if checkpoint:
         from generate import generate_piece, load_model
 
         model = load_model(checkpoint)
         sets["model"] = [
-            generate_piece(model, bars, float(tempos[i]), float(densities[i]), structures[i], temperature=temperature, top_p=top_p, seed=seed + i)
+            generate_piece(model, bars, tempos[i], float(densities[i]), structures[i], style=styles[i], temperature=temperature, top_p=top_p, seed=seed + i)
             for i in range(n)
         ]
     return sets

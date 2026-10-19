@@ -1,4 +1,3 @@
-import copy
 import logging
 import os
 import sys
@@ -14,30 +13,29 @@ from pydantic import BaseModel, Field
 # each other by plain name, so put src/ on the path.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from candombe_rules import CLAVE_STEPS, CLAVE_VELOCITIES, empty_fixed, fix_from_piece, render_piece  # noqa: E402
-from candombe_rules import lock_chico as lock_chico_cells  # noqa: E402
+from candombe_rules import CLAVE, REPIQUE, empty_fixed, fix_from_piece, render_piece  # noqa: E402
 from generate import generate_piece, load_model  # noqa: E402
 from representation import (  # noqa: E402
     ARTICULATIONS,
     INSTRUMENTS,
     SECTIONS,
-    Piece,
     STEPS_PER_BAR,
-    STYLES,
+    Piece,
     articulation_id,
     default_structure,
     offset_to_bin,
     piece_to_events,
     velocity_to_class,
 )
+from toques import ALIASES, LEVELS, TOQUES, dynamics_curve, get_toque, tempo_curve  # noqa: E402
 
 logger = logging.getLogger("neuro-candombe")
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-API_VERSION = 2
-MODEL_PATH = os.environ.get("MODEL_PATH", "models/candombe_v2.pt")
+API_VERSION = 3
+MODEL_PATH = os.environ.get("MODEL_PATH", "models/candombe_v3.pt")
 model = None
 if os.path.exists(MODEL_PATH):
     try:
@@ -48,9 +46,6 @@ if os.path.exists(MODEL_PATH):
 
 MAX_BARS = 32
 MAX_REPIQUES = 4
-
-# The `seed` control picks how the piece starts.
-SEED_DENSITY_SHIFT = {"clave": 0.0, "base": -0.1, "energia": 0.15, "energy": 0.15}
 
 
 def _parse_structure(structure: Optional[str], bars: int) -> list:
@@ -64,58 +59,36 @@ def _parse_structure(structure: Optional[str], bars: int) -> list:
     return [parts[i % len(parts)] for i in range(bars)] if parts else default_structure(bars)
 
 
-def _clave_intro(fixed: dict, structure: list) -> dict:
-    """`seed=clave`: the repique opens the intro bars playing the clave on the madera."""
-    for bar_index, section in enumerate(structure):
-        if section != "intro":
-            continue
-        start = bar_index * STEPS_PER_BAR
-        fixed["vel"][start : start + STEPS_PER_BAR, 1] = 0
-        for step_in_bar, velocity in zip(CLAVE_STEPS, CLAVE_VELOCITIES):
-            fixed["vel"][start + step_in_bar, 1] = 3 if velocity >= 65 else 2
-            fixed["art"][start + step_in_bar, 1] = articulation_id("repique", "madera")
-    return fixed
-
-
-def _entrance(fixed: dict, structure: list) -> dict:
-    """Like a real llamada, chicos and pianos wait while the repiques mark the intro."""
-    for bar_index, section in enumerate(structure):
-        if section == "intro":
-            start = bar_index * STEPS_PER_BAR
-            fixed["vel"][start : start + STEPS_PER_BAR, 0] = 0
-            fixed["vel"][start : start + STEPS_PER_BAR, 2] = 0
-    return fixed
-
-
-def _build_clave_events(step_duration: float, structure: list) -> list:
+def _palmas_events(step_duration: float, structure: list) -> list:
     events = []
     for bar_index, section in enumerate(structure):
-        for step_in_bar, velocity in zip(CLAVE_STEPS, CLAVE_VELOCITIES):
+        for step_in_bar, _, level in CLAVE.events:
             step = bar_index * STEPS_PER_BAR + step_in_bar
             events.append(
                 {
                     "time": step * step_duration,
                     "instrument": "clave",
-                    "velocity": velocity,
+                    "velocity": LEVELS[level],
                     "offset_ms": 0.0,
                     "step": step,
                     "section": section,
                     "articulation": "palmas",
                     "hit_type": "palmas",
+                    "voice": 0,
                 }
             )
     return events
 
 
 class GenerationParams(BaseModel):
-    tempo: int = 90
-    bars: int = 4
-    seed: str = "clave"
+    style: str = "ansina"
+    tempo: Optional[int] = None  # defaults to the toque's typical tempo
+    bars: int = 16
+    subir: bool = False
     temperature: float = 0.9
     density: float = 0.55
     top_p: float = 0.92
     structure: Optional[str] = None
-    style: Optional[str] = None
     lock_chico: bool = True
     strict_rules: bool = True
     palmas: bool = False
@@ -135,7 +108,11 @@ class RegenerateRequest(GenerationParams):
 
 def _clamp_params(params: GenerationParams) -> GenerationParams:
     params = params.model_copy()
-    params.tempo = max(50, min(220, params.tempo))
+    style = (params.style or "ansina").lower()
+    if ALIASES.get(style, style) not in TOQUES:
+        raise HTTPException(status_code=422, detail=f"Unknown toque {params.style}; use {list(TOQUES)}")
+    params.style = ALIASES.get(style, style)
+    params.tempo = max(50, min(220, params.tempo or get_toque(params.style).tempo))
     params.bars = max(4, min(MAX_BARS, params.bars))
     params.repiques = max(1, min(MAX_REPIQUES, params.repiques))
     params.timing_temperature = max(0.1, min(1.5, params.timing_temperature))
@@ -143,8 +120,6 @@ def _clamp_params(params: GenerationParams) -> GenerationParams:
     params.density = max(0.05, min(0.95, params.density))
     params.top_p = max(0.5, min(1.0, params.top_p))
     params.guidance = max(0.0, min(3.0, params.guidance))
-    if params.style is not None and params.style not in STYLES:
-        raise HTTPException(status_code=422, detail=f"Unknown style {params.style}; use {list(STYLES)}")
     if params.random_seed is None:
         # Pick the seed here so the response can report it and the result can be repeated.
         params.random_seed = int(np.random.SeedSequence().entropy % (2**31))
@@ -171,28 +146,53 @@ def _fixed_from_events(events: List[dict], steps: int, step_duration: float, kee
     return fixed
 
 
+def _support_repique(piece: Piece, sections: list, other: Piece) -> Piece:
+    """A second repiquero for the rule engine: own phrases in the base, madera
+    while the lead gives the call or the closing signal [S13]."""
+    variant = Piece(piece.vel.copy(), piece.off.copy(), piece.art.copy(), piece.section.copy(), piece.tempo, piece.style)
+    madera = articulation_id("repique", "madera")
+    for bar, section in enumerate(sections):
+        cells = slice(bar * STEPS_PER_BAR, (bar + 1) * STEPS_PER_BAR)
+        if section in ("base", "llamada_piano"):
+            variant.vel[cells, REPIQUE] = other.vel[cells, REPIQUE]
+            variant.off[cells, REPIQUE] = other.off[cells, REPIQUE]
+            variant.art[cells, REPIQUE] = other.art[cells, REPIQUE]
+        elif section in ("llamada_repique", "cierre"):
+            variant.vel[cells, REPIQUE] = 0
+            variant.off[cells, REPIQUE] = -1
+            variant.art[cells, REPIQUE] = -1
+            for step, _, _ in CLAVE.events:
+                variant.vel[bar * STEPS_PER_BAR + step, REPIQUE] = 2
+                variant.off[bar * STEPS_PER_BAR + step, REPIQUE] = int(offset_to_bin(np.array([0.0]))[0])
+                variant.art[bar * STEPS_PER_BAR + step, REPIQUE] = madera
+    return variant
+
+
 def _compose(params: GenerationParams, keep: Optional[np.ndarray] = None, previous: Optional[List[dict]] = None) -> dict:
     params = _clamp_params(params)
+    toque = get_toque(params.style)
     bars = params.bars
     steps = bars * STEPS_PER_BAR
-    seed_kind = (params.seed or "clave").lower()
-    density = float(np.clip(params.density + SEED_DENSITY_SHIFT.get(seed_kind, 0.0), 0.05, 0.95))
-    step_duration = 60.0 / params.tempo / 4  # 16th-note grid
+    step_duration = 60.0 / params.tempo / 4  # 16th-note grid at the target tempo
     sections = _parse_structure(params.structure, bars)
+    tempos = tempo_curve(toque, bars, params.tempo, params.subir, np.random.default_rng(params.random_seed))
+    dynamics = dynamics_curve(sections, params.subir)
 
     kept = _fixed_from_events(previous or [], steps, step_duration, keep) if keep is not None else None
 
-    def model_piece(fixed: dict, seed: int) -> Piece:
+    def model_piece(fixed: Optional[dict], seed: int, lead: bool = True) -> Piece:
         return generate_piece(
             model,
             bars=bars,
             tempo=params.tempo,
-            density=density,
+            density=params.density,
             structure=sections,
-            style=params.style,
+            style=toque.key,
             fixed=fixed,
-            chico_locked=False,  # applied by the caller so kept cells can override it
+            chico_locked=params.lock_chico,
             strict_rules=params.strict_rules,
+            tempos=tempos,
+            lead_repique=lead,
             temperature=params.temperature,
             top_p=params.top_p,
             guidance=params.guidance,
@@ -200,50 +200,32 @@ def _compose(params: GenerationParams, keep: Optional[np.ndarray] = None, previo
             seed=seed,
         )
 
-    intro = np.repeat([section == "intro" for section in sections], STEPS_PER_BAR)
     if model is not None:
-        fixed = empty_fixed(steps)
-        if seed_kind == "clave":
-            fixed = _clave_intro(fixed, sections)
-        if params.lock_chico:
-            fixed = lock_chico_cells(fixed)
-        fixed = _entrance(fixed, sections)
-        if kept is not None:
-            for key in fixed:
-                fixed[key][keep] = kept[key][keep]
-        piece = model_piece(fixed, params.random_seed)
+        piece = model_piece(kept, params.random_seed)
         engine = "model"
     else:
         rng = np.random.default_rng(params.random_seed)
-        piece = render_piece(rng, sections, density=density, tempo=params.tempo, style=params.style)
-        for inst in (0, 2):
-            piece.vel[intro, inst] = 0
-            piece.off[intro, inst] = -1
-            piece.art[intro, inst] = -1
+        piece = render_piece(rng, sections, density=params.density, tempo=params.tempo, style=toque.key, tempos=tempos)
         if kept is not None:
             piece.vel[keep] = kept["vel"][keep]
             piece.off[keep] = np.where(kept["vel"][keep] > 0, kept["off"][keep], -1)
             piece.art[keep] = np.where(kept["vel"][keep] > 0, kept["art"][keep], -1)
         engine = "rules"
 
-    # Every extra repiquero improvises a different line over the same chico and
-    # piano; in the intro they all mark the same clave.
+    # Every extra repiquero improvises its own line over the same chico and piano,
+    # and plays madera while the lead repique gives the signals.
     extra_repiques = []
+    shared = np.repeat([section in ("intro", "final") for section in sections], STEPS_PER_BAR)
     for voice in range(1, params.repiques):
         voice_seed = params.random_seed + 7919 * voice
         if model is not None:
             fixed = fix_from_piece(empty_fixed(steps), piece, ["chico", "piano"])
             for key in fixed:
-                fixed[key][intro, 1] = getattr(piece, key)[intro, 1]
-            extra_repiques.append(model_piece(fixed, voice_seed))
+                fixed[key][shared, REPIQUE] = getattr(piece, key)[shared, REPIQUE]
+            extra_repiques.append(model_piece(fixed, voice_seed, lead=False))
         else:
-            other = render_piece(np.random.default_rng(voice_seed), sections, density=density, tempo=params.tempo)
-            variant = copy.deepcopy(piece)
-            free = ~intro
-            variant.vel[free, 1] = other.vel[free, 1]
-            variant.off[free, 1] = other.off[free, 1]
-            variant.art[free, 1] = other.art[free, 1]
-            extra_repiques.append(variant)
+            other = render_piece(np.random.default_rng(voice_seed), sections, density=params.density, tempo=params.tempo, style=toque.key, tempos=tempos)
+            extra_repiques.append(_support_repique(piece, sections, other))
 
     events = piece_to_events(piece, step_duration, sections)
     for event in events:
@@ -254,12 +236,16 @@ def _compose(params: GenerationParams, keep: Optional[np.ndarray] = None, previo
                 event["voice"] = voice
                 events.append(event)
     if params.palmas:
-        events.extend(_build_clave_events(step_duration, sections))
+        events.extend(_palmas_events(step_duration, sections))
     events.sort(key=lambda event: (float(event["time"]), event["instrument"]))
     return {
         "version": API_VERSION,
         "engine": engine,
+        "style": toque.key,
+        "toque": {"label": toque.label, "barrio": toque.barrio},
         "tempo": params.tempo,
+        "tempo_curve": tempos,
+        "dynamics": dynamics,
         "bars": bars,
         "step_duration": step_duration,
         "model_loaded": model is not None,
@@ -273,14 +259,14 @@ def _compose(params: GenerationParams, keep: Optional[np.ndarray] = None, previo
 
 @app.get("/generate")
 def generate(
-    tempo: int = 90,
-    bars: int = 4,
-    seed: str = "clave",
+    style: str = "ansina",
+    tempo: Optional[int] = None,
+    bars: int = 16,
+    subir: bool = False,
     temperature: float = 0.9,
     density: float = 0.55,
     top_p: float = 0.92,
     structure: Optional[str] = None,
-    style: Optional[str] = None,
     lock_chico: bool = True,
     strict_rules: bool = True,
     palmas: bool = False,
@@ -308,6 +294,23 @@ def regenerate(request: RegenerateRequest):
     if keep.all():
         raise HTTPException(status_code=422, detail="Nothing to regenerate: every drum and bar is kept")
     return _compose(request, keep=keep, previous=request.events)
+
+
+@app.get("/toques")
+def toques():
+    """The toques madre with their documented character, for the UI."""
+    return [
+        {
+            "key": t.key,
+            "label": t.label,
+            "barrio": t.barrio,
+            "description": t.description,
+            "tempo": t.tempo,
+            "tempo_range": list(t.tempo_range),
+            "chico": "de tres" if t.chico_de_tres_always else "de dos (de tres a tempo lento)",
+        }
+        for t in TOQUES.values()
+    ]
 
 
 @app.get("/health")

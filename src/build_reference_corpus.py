@@ -28,7 +28,7 @@ from representation import ARTICULATIONS
 FALLBACK_SAMPLES = {
     "chico": {"mano": "/samples/chico_mano.wav", "palo": "/samples/chico_palo.wav"},
     "repique": {"palo": "/samples/repique_talk_open.wav", "mano": "/samples/repique_talk_support.wav"},
-    "piano": {"bass_open": "/samples/piano.wav"},
+    "piano": {"abierto": "/samples/piano.wav"},
 }
 
 
@@ -92,15 +92,21 @@ def name_clusters(instrument: str, features: np.ndarray, labels: np.ndarray) -> 
         for c in remaining:
             names[c] = "mano"
     elif instrument == "piano":
-        by_brightness = sorted(clusters, key=lambda c: mean[c][0])
-        half = max(1, len(by_brightness) // 2)
-        for group, (open_name, closed_name) in ((by_brightness[:half], ("bass_open", "bass_muted")), (by_brightness[half:], ("stick_open", "stick_closed"))):
+        # madera: brightest; then stick strokes (abierto rings, apagado is short)
+        # are brighter than hand strokes (mano rings, masa is dry and short).
+        remaining = sorted(clusters, key=lambda c: mean[c][0])
+        if len(remaining) >= 5:
+            names[remaining.pop()] = "madera"
+        half = len(remaining) // 2
+        for group, (ringing, dry) in ((remaining[half:], ("abierto", "apagado")), (remaining[:half], ("mano", "masa"))):
             for rank, c in enumerate(sorted(group, key=lambda c: -mean[c][1])):
-                names[c] = open_name if rank == 0 else closed_name
+                names[c] = ringing if rank == 0 else dry
+        for c in clusters:
+            names.setdefault(c, "abierto")
     else:
         by_brightness = sorted(clusters, key=lambda c: mean[c][0])
         for rank, c in enumerate(by_brightness):
-            names[c] = "mano" if rank == 0 else "palo"
+            names[c] = "mano" if rank == 0 else "madera" if rank == 2 else "palo"
     return names
 
 

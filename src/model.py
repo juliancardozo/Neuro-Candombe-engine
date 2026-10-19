@@ -17,6 +17,7 @@ import torch
 import torch.nn as nn
 
 from representation import (
+    ARTICULATIONS,
     N_ART,
     N_DENSITY,
     N_INSTR,
@@ -112,16 +113,31 @@ class CandombeTransformer(nn.Module):
         }
 
 
+def vocabulary() -> dict:
+    """What the embeddings mean; a checkpoint is only valid with the same vocabulary."""
+    return {
+        "articulations": {name: list(values) for name, values in ARTICULATIONS.items()},
+        "sections": list(SECTIONS),
+        "styles": list(STYLES),
+    }
+
+
 def save_checkpoint(path: str, model: CandombeTransformer, extra: Optional[dict] = None) -> None:
-    torch.save({"format": "candombe-v2", "config": asdict(model.config), "state_dict": model.state_dict(), **(extra or {})}, path)
+    torch.save(
+        {"format": "candombe-v2", "vocab": vocabulary(), "config": asdict(model.config), "state_dict": model.state_dict(), **(extra or {})},
+        path,
+    )
 
 
 def load_checkpoint(path: str, device: str = "cpu") -> CandombeTransformer:
-    """Load a v2 checkpoint. Legacy (v1) state dicts raise ValueError: that model
-    was trained with target leakage and is not compatible with this architecture."""
+    """Load a checkpoint trained with the current vocabulary. Legacy (v1) state
+    dicts and checkpoints with another articulation/section/style vocabulary
+    raise ValueError."""
     payload = torch.load(path, map_location=device)
     if not isinstance(payload, dict) or payload.get("format") != "candombe-v2":
         raise ValueError(f"{path} is not a candombe-v2 checkpoint (legacy v1 models are not supported)")
+    if payload.get("vocab") != vocabulary():
+        raise ValueError(f"{path} was trained with a different vocabulary; retrain it with src/train.py")
     model = CandombeTransformer(ModelConfig(**payload["config"]))
     model.load_state_dict(payload["state_dict"])
     return model.to(device).eval()

@@ -9,4 +9,4 @@ services:
       - key: PYTHON_VERSION
         value: 3.10.14
       - key: MODEL_PATH
-        value: models/candombe_v2.pt
+        value: models/candombe_v3.pt

@@ -2,9 +2,9 @@
 
 Offsets are fractions of a 16th step (see representation.py).
 
-DEFAULT_PROFILE is provisional: it was derived from the hand-tuned offsets in
-the web presets (web/index.html, ~90 BPM), not from measurements. Replace it
-with a profile estimated from real recordings:
+DEFAULT_PROFILE is the documented groove of the Ansina toque at its typical
+tempo (Jure & Rocamora 2022, see toques.groove_offsets); the rule renderer uses
+the per-toque, per-tempo version directly. To measure a profile from recordings:
 
     python src/microtiming.py --data-glob "data/processed/candombe_dataset/*.npz" --out data/analysis/microtiming_profile.json
 """
@@ -17,12 +17,12 @@ from typing import Dict, Iterable, Optional
 import numpy as np
 
 from representation import INSTRUMENTS, STEPS_PER_BEAT, Piece, bin_to_offset, load_piece
+from toques import TIMING_SPREAD, get_toque, groove_offsets
 
 # instrument -> [(mean, std)] for 16th positions 0..3 inside the beat
 DEFAULT_PROFILE: Dict[str, list] = {
-    "chico": [(0.0, 0.012), (-0.014, 0.010), (0.011, 0.010), (-0.007, 0.010)],
-    "repique": [(-0.010, 0.060), (0.020, 0.070), (-0.010, 0.060), (0.020, 0.070)],
-    "piano": [(-0.024, 0.020), (0.030, 0.025), (0.036, 0.025), (-0.042, 0.020)],
+    name: [(round(mean, 4), TIMING_SPREAD[name]) for mean in groove_offsets(get_toque("ansina"), name, get_toque("ansina").tempo)]
+    for name in INSTRUMENTS
 }
 
 MIN_HITS_PER_CELL = 8
