@@ -3,6 +3,8 @@
 *.mp3
 *.ogg
 *.flac
+# Synthesized drum one-shots used by the web player (src/synthesize_drum_samples.py)
+!web/samples/llamadas/*.wav
 
 # Training data and analysis artifacts
 data/raw/

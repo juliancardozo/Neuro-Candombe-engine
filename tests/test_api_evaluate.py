@@ -100,3 +100,23 @@ def test_same_seed_repeats_generation():
     a = client.get("/generate", params={"bars": 4, "random_seed": 5}).json()
     b = client.get("/generate", params={"bars": 4, "random_seed": 5}).json()
     assert a["events"] == b["events"]
+
+
+@pytest.mark.parametrize("engine", ["rules", "model"])
+def test_desfile_entrance_and_repique_voices(engine, tmp_path, tiny_model):
+    path = "__missing__.pt"
+    if engine == "model":
+        path = str(tmp_path / "tiny.pt")
+        save_checkpoint(path, tiny_model)
+    client = _client(path)
+    data = client.get("/generate", params={"bars": 32, "repiques": 3, "random_seed": 4}).json()
+    assert data["bars"] == 32 and data["repiques"] == 3
+    assert data["structure"][0] == "intro" and data["structure"][1] == "llamada_repique" and data["structure"][-1] == "cierre"
+    assert all(e["instrument"] != "clave" for e in data["events"])  # no palmas by default
+
+    intro = [e for e in data["events"] if e["step"] < 16]
+    assert intro and all(e["instrument"] == "repique" for e in intro)
+    voices = {v: _drum_cells([e for e in data["events"] if e.get("voice") == v], {"repique"}, bars=set(range(2, 32))) for v in range(3)}
+    assert voices[0] != voices[1] and voices[1] != voices[2]
+    intro_lines = {v: _drum_cells([e for e in intro if e["voice"] == v]) for v in range(3)}
+    assert intro_lines[0] == intro_lines[1] == intro_lines[2]

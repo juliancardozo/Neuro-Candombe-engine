@@ -72,13 +72,16 @@ curl "http://localhost:8000/generate?tempo=104&bars=8&density=0.6&structure=intr
 ```
 | Parametro | Por defecto | Que hace |
 |---|---|---|
-| `tempo`, `bars` | 90, 4 | BPM (50-220), compases (4-16) |
+| `tempo`, `bars` | 90, 4 | BPM (50-220), compases (4-32) |
 | `seed` | `clave` | `clave`: el repique abre con la clave en la madera; `energia`: +densidad; `base`: -densidad |
 | `temperature`, `top_p` | 0.9, 0.92 | Variacion del muestreo |
 | `density` | 0.55 | Carga ritmica (condiciona al modelo, no es una moneda al azar) |
-| `structure` | intro/llamadas/cierre por cuartos | Secciones por compas, separadas por coma: `base`, `intro`, `llamada_repique`, `llamada_piano`, `cierre` |
+| `structure` | forma de llamada | Secciones por compas, separadas por coma: `base`, `intro`, `llamada_repique`, `llamada_piano`, `cierre` |
 | `style` | - | `montevideo`, `cuareim`, `ansina`, `cordon` (sirve cuando haya datos etiquetados) |
-| `lock_chico`, `strict_rules`, `palmas` | true | Chico fijo, restricciones del toque, palmas de clave |
+| `lock_chico`, `strict_rules` | true | Chico fijo, restricciones del toque |
+| `palmas` | false | Palmas de clave encima (no son parte de una llamada) |
+| `repiques` | 1 | Lineas de repique distintas (1-4), una por repiquero; los eventos traen `voice` |
+| `timing_temperature` | 0.5 | Que tan suelto se muestrea el microtiming |
 | `guidance` | 1.0 | >1 refuerza el condicionamiento (classifier-free guidance) |
 | `random_seed` | - | Reproducibilidad |
 
@@ -86,16 +89,17 @@ La respuesta (`version: 2`) trae por evento `offset_ms` (microtiming) y `articul
 
 `POST /regenerate` rehace una parte de un resultado anterior y deja fijo el resto: mismo cuerpo que los parametros de `/generate` (en JSON) mas `events` (los del resultado anterior), `keep_instruments` (tambores a mantener) y/o `regenerate_bars` (indices de compases a rehacer, desde 0).
 
-## Frontend
-- **Forma del toque**: una seccion por compas (intro, base, llamadas, cierre), editable; "Forma automatica" vuelve a la del backend.
-- **Rehacer manteniendo el resto**: solo el repique, el piano o el chico, o los compases marcados con "Rehacer" (usa `/regenerate`).
-- **Controles avanzados**: foco (top-p), guia de estilo, estilo, reglas estrictas/libres, palmas, semilla (y "Usar ultima" para repetir una generacion).
-- **Microtiming** (0 = cuantizado, 1 = como lo genero el modelo, 1.5 = exagerado) y **Chico fijo/libre**.
-- **Mapa ritmico**: la forma de cada golpe muestra la articulacion (lleno = palo/abierto, punto = mano/apagado, aro = madera/palo del piano) y su corrimiento horizontal el microtiming (x2). Tooltip con compas, tiempo, articulacion, intensidad y ms. Las piezas largas se desplazan dentro del mapa.
-- **Exportar**: WAV (render offline con la misma mezcla, mute y microtiming), MIDI (notas GM 42/38/36/39, compatibles con `data_preprocess.py` para reimportar) y JSON.
-- Al cargar consulta `/health` y muestra si hay modelo.
-- Muestras por articulacion en `web/samples/manifest.json` (`build_reference_corpus.py` lo genera); si falta una articulacion usa la de fase vieja o `default`.
-- Pendiente: el `manifest.json` versionado apunta a `.wav` que no estan en el repo (estan en `.gitignore`), asi que el navegador hace ~200 pedidos 404 al cargar y usa sintesis. Hay que versionar las muestras o regenerar el manifest con las que existan en el deploy.
+## Frontend (desfile de llamadas)
+- Un boton **Tocar/Parar** y cuatro controles: tempo, duracion (8/16/32 compases), tamaño de la cuerda (chica 3/2/1, mediana 6/3/2, grande 10/4/3 chicos/repiques/pianos) e intensidad.
+- **Forma de llamada automatica**: los repiques marcan la clave en la madera solos, la llamada de repique arranca el toque, la base sigue con una llamada cada 8 compases (y una de piano en piezas largas) y cierra.
+- **Cuerda real**: cada tamborilero tiene su lugar en el estereo, su afinacion y su forma de caer en el tiempo; cada repiquero improvisa su propia linea (el modelo completa repiques distintos sobre el mismo chico y piano).
+- **La cuerda pasa frente a vos** (se acerca, pasa y se aleja) y **subir la llamada** (acelera 5% de a poco). Reverberacion de calle, compresion suave y limitador.
+- **Otra llamada**, **Nuevos repiques** (mantiene chico y piano), **Descargar WAV** (mismo sonido que se escucha) y **MIDI** (con mapa de tempo, reimportable con `data_preprocess.py`).
+- "Mas opciones": improvisacion, swing (microtiming), calle, mezcla por tambor, chico fijo/libre y semilla.
+- Los golpes se programan justo antes de sonar (lookahead), no todos al principio.
+
+### Sonidos
+`web/samples/llamadas/` tiene golpes sintetizados por modelo fisico (modos de un parche circular, palo, mano y madera), 4 tomas por articulacion. Se regeneran con `python src/synthesize_drum_samples.py`, que tambien escribe `web/samples/manifest.json`. Con grabaciones reales de buena calidad, `build_reference_corpus.py` arma un manifest con ellas y el player las usa sin cambios.
 
 ## Deploy: Netlify + Render
 - `web/` en Netlify (`netlify.toml`, variable `API_BASE_URL` con la URL del backend).

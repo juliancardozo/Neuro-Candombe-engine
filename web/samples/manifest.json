@@ -1,256 +1,80 @@
 {
   "chico": {
-    "default": [
-      "/samples/reference_bank/chico_candombe1_01.wav",
-      "/samples/reference_bank/chico_candombe2_04.wav",
-      "/samples/reference_bank/chico_candombe2_05.wav",
-      "/samples/reference_bank/chico_candombe2_06.wav",
-      "/samples/reference_bank/chico_candombe3_07.wav",
-      "/samples/reference_bank/chico_candombe1_02.wav",
-      "/samples/reference_bank/chico_candombe1_03.wav",
-      "/samples/reference_bank/chico_candombe3_08.wav",
-      "/samples/reference_bank/chico_candombe3_09.wav",
-      "/samples/reference_bank/chico_references_10.wav",
-      "/samples/reference_bank/chico_references_11.wav",
-      "/samples/reference_bank/chico_references_12.wav",
-      "/samples/chico_palo.wav"
+    "palo": [
+      "/samples/llamadas/chico_palo_01.wav",
+      "/samples/llamadas/chico_palo_02.wav",
+      "/samples/llamadas/chico_palo_03.wav",
+      "/samples/llamadas/chico_palo_04.wav"
     ],
     "mano": [
-      "/samples/reference_bank/chico_candombe1_02.wav",
-      "/samples/reference_bank/chico_candombe1_03.wav",
-      "/samples/reference_bank/chico_candombe3_08.wav",
-      "/samples/reference_bank/chico_candombe3_09.wav",
-      "/samples/reference_bank/chico_references_10.wav",
-      "/samples/reference_bank/chico_references_11.wav",
-      "/samples/reference_bank/chico_references_12.wav",
-      "/samples/chico_mano.wav"
+      "/samples/llamadas/chico_mano_01.wav",
+      "/samples/llamadas/chico_mano_02.wav",
+      "/samples/llamadas/chico_mano_03.wav",
+      "/samples/llamadas/chico_mano_04.wav"
     ],
-    "palo": [
-      "/samples/reference_bank/chico_candombe1_01.wav",
-      "/samples/reference_bank/chico_candombe2_04.wav",
-      "/samples/reference_bank/chico_candombe2_05.wav",
-      "/samples/reference_bank/chico_candombe2_06.wav",
-      "/samples/reference_bank/chico_candombe3_07.wav",
-      "/samples/chico_palo.wav"
+    "default": [
+      "/samples/llamadas/chico_palo_01.wav",
+      "/samples/llamadas/chico_palo_02.wav",
+      "/samples/llamadas/chico_palo_03.wav",
+      "/samples/llamadas/chico_palo_04.wav"
     ]
   },
   "repique": {
+    "palo": [
+      "/samples/llamadas/repique_palo_01.wav",
+      "/samples/llamadas/repique_palo_02.wav",
+      "/samples/llamadas/repique_palo_03.wav",
+      "/samples/llamadas/repique_palo_04.wav"
+    ],
+    "mano": [
+      "/samples/llamadas/repique_mano_01.wav",
+      "/samples/llamadas/repique_mano_02.wav",
+      "/samples/llamadas/repique_mano_03.wav",
+      "/samples/llamadas/repique_mano_04.wav"
+    ],
+    "madera": [
+      "/samples/llamadas/repique_madera_01.wav",
+      "/samples/llamadas/repique_madera_02.wav",
+      "/samples/llamadas/repique_madera_03.wav",
+      "/samples/llamadas/repique_madera_04.wav"
+    ],
     "default": [
-      "/samples/reference_bank/repique_candombe1_01.wav",
-      "/samples/reference_bank/repique_candombe1_02.wav",
-      "/samples/reference_bank/repique_candombe1_03.wav",
-      "/samples/reference_bank/repique_candombe2_04.wav",
-      "/samples/reference_bank/repique_candombe2_05.wav",
-      "/samples/reference_bank/repique_candombe2_06.wav",
-      "/samples/reference_bank/repique_candombe3_07.wav",
-      "/samples/reference_bank/repique_candombe3_08.wav",
-      "/samples/reference_bank/repique_candombe3_09.wav",
-      "/samples/reference_bank/repique_references_10.wav",
-      "/samples/reference_bank/repique_references_11.wav",
-      "/samples/reference_bank/repique_references_12.wav",
-      "/samples/repique_talk_support.wav"
-    ],
-    "talk_open": [
-      "/samples/reference_bank/repique_candombe1_01.wav",
-      "/samples/reference_bank/repique_candombe1_02.wav",
-      "/samples/reference_bank/repique_candombe1_03.wav",
-      "/samples/reference_bank/repique_candombe2_04.wav",
-      "/samples/reference_bank/repique_candombe2_05.wav",
-      "/samples/reference_bank/repique_candombe2_06.wav",
-      "/samples/reference_bank/repique_candombe3_07.wav",
-      "/samples/reference_bank/repique_candombe3_08.wav",
-      "/samples/reference_bank/repique_candombe3_09.wav",
-      "/samples/reference_bank/repique_references_10.wav",
-      "/samples/reference_bank/repique_references_11.wav",
-      "/samples/reference_bank/repique_references_12.wav",
-      "/samples/repique_talk_open.wav"
-    ],
-    "talk_support": [
-      "/samples/reference_bank/repique_candombe1_01.wav",
-      "/samples/reference_bank/repique_candombe1_02.wav",
-      "/samples/reference_bank/repique_candombe1_03.wav",
-      "/samples/reference_bank/repique_candombe2_04.wav",
-      "/samples/reference_bank/repique_candombe2_05.wav",
-      "/samples/reference_bank/repique_candombe2_06.wav",
-      "/samples/reference_bank/repique_candombe3_07.wav",
-      "/samples/reference_bank/repique_candombe3_08.wav",
-      "/samples/reference_bank/repique_candombe3_09.wav",
-      "/samples/reference_bank/repique_references_10.wav",
-      "/samples/reference_bank/repique_references_11.wav",
-      "/samples/reference_bank/repique_references_12.wav",
-      "/samples/repique_talk_support.wav"
-    ],
-    "talk_answer": [
-      "/samples/reference_bank/repique_candombe1_01.wav",
-      "/samples/reference_bank/repique_candombe1_02.wav",
-      "/samples/reference_bank/repique_candombe1_03.wav",
-      "/samples/reference_bank/repique_candombe2_04.wav",
-      "/samples/reference_bank/repique_candombe2_05.wav",
-      "/samples/reference_bank/repique_candombe2_06.wav",
-      "/samples/reference_bank/repique_candombe3_07.wav",
-      "/samples/reference_bank/repique_candombe3_08.wav",
-      "/samples/reference_bank/repique_candombe3_09.wav",
-      "/samples/reference_bank/repique_references_10.wav",
-      "/samples/reference_bank/repique_references_11.wav",
-      "/samples/reference_bank/repique_references_12.wav",
-      "/samples/repique_talk_answer.wav"
-    ],
-    "talk_close": [
-      "/samples/reference_bank/repique_candombe1_01.wav",
-      "/samples/reference_bank/repique_candombe1_02.wav",
-      "/samples/reference_bank/repique_candombe1_03.wav",
-      "/samples/reference_bank/repique_candombe2_04.wav",
-      "/samples/reference_bank/repique_candombe2_05.wav",
-      "/samples/reference_bank/repique_candombe2_06.wav",
-      "/samples/reference_bank/repique_candombe3_07.wav",
-      "/samples/reference_bank/repique_candombe3_08.wav",
-      "/samples/reference_bank/repique_candombe3_09.wav",
-      "/samples/reference_bank/repique_references_10.wav",
-      "/samples/reference_bank/repique_references_11.wav",
-      "/samples/reference_bank/repique_references_12.wav",
-      "/samples/repique_talk_close.wav"
-    ],
-    "call_open": [
-      "/samples/reference_bank/repique_candombe1_01.wav",
-      "/samples/reference_bank/repique_candombe1_02.wav",
-      "/samples/reference_bank/repique_candombe1_03.wav",
-      "/samples/reference_bank/repique_candombe2_04.wav",
-      "/samples/reference_bank/repique_candombe2_05.wav",
-      "/samples/reference_bank/repique_candombe2_06.wav",
-      "/samples/reference_bank/repique_candombe3_07.wav",
-      "/samples/reference_bank/repique_candombe3_08.wav",
-      "/samples/reference_bank/repique_candombe3_09.wav",
-      "/samples/reference_bank/repique_references_10.wav",
-      "/samples/reference_bank/repique_references_11.wav",
-      "/samples/reference_bank/repique_references_12.wav",
-      "/samples/repique_call_open.wav"
-    ],
-    "call_support": [
-      "/samples/reference_bank/repique_candombe1_01.wav",
-      "/samples/reference_bank/repique_candombe1_02.wav",
-      "/samples/reference_bank/repique_candombe1_03.wav",
-      "/samples/reference_bank/repique_candombe2_04.wav",
-      "/samples/reference_bank/repique_candombe2_05.wav",
-      "/samples/reference_bank/repique_candombe2_06.wav",
-      "/samples/reference_bank/repique_candombe3_07.wav",
-      "/samples/reference_bank/repique_candombe3_08.wav",
-      "/samples/reference_bank/repique_candombe3_09.wav",
-      "/samples/reference_bank/repique_references_10.wav",
-      "/samples/reference_bank/repique_references_11.wav",
-      "/samples/reference_bank/repique_references_12.wav",
-      "/samples/repique_call_support.wav"
-    ],
-    "call_close": [
-      "/samples/reference_bank/repique_candombe1_01.wav",
-      "/samples/reference_bank/repique_candombe1_02.wav",
-      "/samples/reference_bank/repique_candombe1_03.wav",
-      "/samples/reference_bank/repique_candombe2_04.wav",
-      "/samples/reference_bank/repique_candombe2_05.wav",
-      "/samples/reference_bank/repique_candombe2_06.wav",
-      "/samples/reference_bank/repique_candombe3_07.wav",
-      "/samples/reference_bank/repique_candombe3_08.wav",
-      "/samples/reference_bank/repique_candombe3_09.wav",
-      "/samples/reference_bank/repique_references_10.wav",
-      "/samples/reference_bank/repique_references_11.wav",
-      "/samples/reference_bank/repique_references_12.wav",
-      "/samples/repique_call_close.wav"
-    ],
-    "call_tail": [
-      "/samples/reference_bank/repique_candombe1_01.wav",
-      "/samples/reference_bank/repique_candombe1_02.wav",
-      "/samples/reference_bank/repique_candombe1_03.wav",
-      "/samples/reference_bank/repique_candombe2_04.wav",
-      "/samples/reference_bank/repique_candombe2_05.wav",
-      "/samples/reference_bank/repique_candombe2_06.wav",
-      "/samples/reference_bank/repique_candombe3_07.wav",
-      "/samples/reference_bank/repique_candombe3_08.wav",
-      "/samples/reference_bank/repique_candombe3_09.wav",
-      "/samples/reference_bank/repique_references_10.wav",
-      "/samples/reference_bank/repique_references_11.wav",
-      "/samples/reference_bank/repique_references_12.wav",
-      "/samples/repique_call_tail.wav"
+      "/samples/llamadas/repique_palo_01.wav",
+      "/samples/llamadas/repique_palo_02.wav",
+      "/samples/llamadas/repique_palo_03.wav",
+      "/samples/llamadas/repique_palo_04.wav"
     ]
   },
   "piano": {
-    "default": [
-      "/samples/reference_bank/piano_candombe1_01.wav",
-      "/samples/reference_bank/piano_candombe1_02.wav",
-      "/samples/reference_bank/piano_candombe1_03.wav",
-      "/samples/reference_bank/piano_candombe2_04.wav",
-      "/samples/reference_bank/piano_candombe2_05.wav",
-      "/samples/reference_bank/piano_candombe2_06.wav",
-      "/samples/reference_bank/piano_candombe3_07.wav",
-      "/samples/reference_bank/piano_candombe3_08.wav",
-      "/samples/reference_bank/piano_candombe3_09.wav",
-      "/samples/reference_bank/piano_references_10.wav",
-      "/samples/reference_bank/piano_references_11.wav",
-      "/samples/reference_bank/piano_references_12.wav",
-      "/samples/piano.wav"
-    ],
     "bass_open": [
-      "/samples/reference_bank/piano_candombe1_01.wav",
-      "/samples/reference_bank/piano_candombe1_02.wav",
-      "/samples/reference_bank/piano_candombe1_03.wav",
-      "/samples/reference_bank/piano_candombe2_04.wav",
-      "/samples/reference_bank/piano_candombe2_05.wav",
-      "/samples/reference_bank/piano_candombe2_06.wav",
-      "/samples/reference_bank/piano_candombe3_07.wav",
-      "/samples/reference_bank/piano_candombe3_08.wav",
-      "/samples/reference_bank/piano_candombe3_09.wav",
-      "/samples/reference_bank/piano_references_10.wav",
-      "/samples/reference_bank/piano_references_11.wav",
-      "/samples/reference_bank/piano_references_12.wav",
-      "/samples/piano.wav"
+      "/samples/llamadas/piano_bass_open_01.wav",
+      "/samples/llamadas/piano_bass_open_02.wav",
+      "/samples/llamadas/piano_bass_open_03.wav",
+      "/samples/llamadas/piano_bass_open_04.wav"
     ],
     "bass_muted": [
-      "/samples/reference_bank/piano_candombe1_01.wav",
-      "/samples/reference_bank/piano_candombe1_02.wav",
-      "/samples/reference_bank/piano_candombe1_03.wav",
-      "/samples/reference_bank/piano_candombe2_04.wav",
-      "/samples/reference_bank/piano_candombe2_05.wav",
-      "/samples/reference_bank/piano_candombe2_06.wav",
-      "/samples/reference_bank/piano_candombe3_07.wav",
-      "/samples/reference_bank/piano_candombe3_08.wav",
-      "/samples/reference_bank/piano_candombe3_09.wav",
-      "/samples/reference_bank/piano_references_10.wav",
-      "/samples/reference_bank/piano_references_11.wav",
-      "/samples/reference_bank/piano_references_12.wav",
-      "/samples/piano.wav"
+      "/samples/llamadas/piano_bass_muted_01.wav",
+      "/samples/llamadas/piano_bass_muted_02.wav",
+      "/samples/llamadas/piano_bass_muted_03.wav",
+      "/samples/llamadas/piano_bass_muted_04.wav"
     ],
     "stick_open": [
-      "/samples/reference_bank/piano_candombe1_01.wav",
-      "/samples/reference_bank/piano_candombe1_02.wav",
-      "/samples/reference_bank/piano_candombe1_03.wav",
-      "/samples/reference_bank/piano_candombe2_04.wav",
-      "/samples/reference_bank/piano_candombe2_05.wav",
-      "/samples/reference_bank/piano_candombe2_06.wav",
-      "/samples/reference_bank/piano_candombe3_07.wav",
-      "/samples/reference_bank/piano_candombe3_08.wav",
-      "/samples/reference_bank/piano_candombe3_09.wav",
-      "/samples/reference_bank/piano_references_10.wav",
-      "/samples/reference_bank/piano_references_11.wav",
-      "/samples/reference_bank/piano_references_12.wav",
-      "/samples/piano.wav"
+      "/samples/llamadas/piano_stick_open_01.wav",
+      "/samples/llamadas/piano_stick_open_02.wav",
+      "/samples/llamadas/piano_stick_open_03.wav",
+      "/samples/llamadas/piano_stick_open_04.wav"
     ],
     "stick_closed": [
-      "/samples/reference_bank/piano_candombe1_01.wav",
-      "/samples/reference_bank/piano_candombe1_02.wav",
-      "/samples/reference_bank/piano_candombe1_03.wav",
-      "/samples/reference_bank/piano_candombe2_04.wav",
-      "/samples/reference_bank/piano_candombe2_05.wav",
-      "/samples/reference_bank/piano_candombe2_06.wav",
-      "/samples/reference_bank/piano_candombe3_07.wav",
-      "/samples/reference_bank/piano_candombe3_08.wav",
-      "/samples/reference_bank/piano_candombe3_09.wav",
-      "/samples/reference_bank/piano_references_10.wav",
-      "/samples/reference_bank/piano_references_11.wav",
-      "/samples/reference_bank/piano_references_12.wav",
-      "/samples/piano.wav"
-    ]
-  },
-  "clave": {
+      "/samples/llamadas/piano_stick_closed_01.wav",
+      "/samples/llamadas/piano_stick_closed_02.wav",
+      "/samples/llamadas/piano_stick_closed_03.wav",
+      "/samples/llamadas/piano_stick_closed_04.wav"
+    ],
     "default": [
-      "/samples/clave.wav"
+      "/samples/llamadas/piano_bass_open_01.wav",
+      "/samples/llamadas/piano_bass_open_02.wav",
+      "/samples/llamadas/piano_bass_open_03.wav",
+      "/samples/llamadas/piano_bass_open_04.wav"
     ]
   }
 }

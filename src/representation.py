@@ -124,20 +124,23 @@ def style_id(name: Optional[str]) -> int:
 
 
 def default_structure(total_bars: int) -> list:
-    """Section per bar used by the API when no structure is requested."""
+    """Section per bar when none is requested, shaped like a llamada:
+    the repiques mark the clave on the madera, a repique call starts the toque,
+    the base runs with a call closing every 8-bar phrase (and a piano call in
+    longer pieces), and the last bar closes."""
     if total_bars <= 1:
         return ["cierre"] * total_bars
-    out = []
-    for bar_index in range(total_bars):
-        position = bar_index / total_bars
-        if position < 0.25:
-            out.append("intro")
-        elif position < 0.50:
-            out.append("llamada_repique")
-        elif position < 0.75:
-            out.append("llamada_piano")
-        else:
-            out.append("cierre")
+    out = ["base"] * total_bars
+    out[0] = "intro"
+    if total_bars >= 3:
+        out[1] = "llamada_repique"
+    for phrase_end in range(7, total_bars - 1, 8):
+        out[phrase_end] = "llamada_repique"
+    if total_bars >= 12:
+        middle = total_bars // 2 + 1
+        if out[middle] == "base":
+            out[middle] = "llamada_piano"
+    out[-1] = "cierre"
     return out
 
 

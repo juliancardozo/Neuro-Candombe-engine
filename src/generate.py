@@ -113,6 +113,7 @@ def _generate_window(
     iterations: int,
     silence_bias: float,
     guidance: float,
+    timing_temperature: float,
     generator: torch.Generator,
     device: str,
 ) -> Dict[str, np.ndarray]:
@@ -163,7 +164,7 @@ def _generate_window(
         if not (pending.any() or pending_art.any()):
             break
         out = win.logits(vel, off, art, guidance)
-        off_choice, off_logp = _sample_logits(out["off"][0], temperature, 1.0, generator)
+        off_choice, off_logp = _sample_logits(out["off"][0], timing_temperature, 1.0, generator)
         art_choice = torch.zeros_like(off_choice)
         art_logp = torch.zeros_like(off_logp)
         for inst in range(N_INSTR):
@@ -208,10 +209,14 @@ def generate_piece(
     top_p: float = 0.92,
     iterations: int = 16,
     guidance: float = 1.0,
+    timing_temperature: float = 0.5,
     seed: Optional[int] = None,
     device: str = "cpu",
 ) -> Piece:
-    """Generate `bars` bars. `density` is the 0..1 UI knob (see representation)."""
+    """Generate `bars` bars. `density` is the 0..1 UI knob (see representation).
+
+    `timing_temperature` is kept below the note temperature on purpose: sampling
+    microtiming hot turns the systematic swing into random sloppiness."""
     steps = bars * STEPS_PER_BAR
     structure = list(structure) if structure else default_structure(bars)
     if len(structure) != bars:
@@ -251,6 +256,7 @@ def generate_piece(
             iterations,
             silence_bias,
             guidance,
+            timing_temperature,
             generator,
             device,
         )
