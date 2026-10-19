@@ -734,6 +734,140 @@
       100% { box-shadow: 0 0 0 0 rgba(244,199,68,0); }
     }
 
+    .advanced {
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.6);
+    }
+
+    .advanced summary {
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--accent-deep);
+    }
+
+    .advanced-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .seed-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .seed-row input { flex: 1; min-width: 0; }
+
+    .button.small {
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 0.82rem;
+    }
+
+    .structure {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .structure-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .structure-head .status-copy { margin: 0; }
+
+    .structure-bars {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+      gap: 8px;
+    }
+
+    .bar-chip {
+      display: grid;
+      gap: 6px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.7);
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .bar-chip select {
+      padding: 6px 8px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+    }
+
+    .bar-chip label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .bar-chip input[type="checkbox"] { width: auto; padding: 0; }
+
+    .bar-chip[data-selected="true"] {
+      border-color: rgba(42,155,232,0.55);
+      box-shadow: 0 0 0 3px rgba(42,155,232,0.12);
+    }
+
+    .pattern-tools {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .pattern-tools .tool-label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-right: 2px;
+    }
+
+    .pattern-tools .tool-gap { flex-basis: 100%; height: 0; }
+
+    /* Long pieces scroll inside the map instead of widening the whole page. */
+    .workspace > *,
+    .grid-panel { min-width: 0; }
+    .pattern { overflow-x: auto; padding-bottom: 6px; }
+
+    /* Articulation and microtiming in the grid. */
+    .step.chico { --art-color: var(--chico); }
+    .step.repique { --art-color: var(--repique); }
+    .step.piano { --art-color: var(--piano); }
+    .step.clave { --art-color: var(--clave); }
+    .step::after { transform: translateX(var(--nudge, 0%)); }
+    .step[data-art="mano"]::after,
+    .step[data-art="bass_muted"]::after { inset: 22%; border-radius: 50%; }
+    .step[data-art="madera"]::after,
+    .step[data-art="stick_open"]::after,
+    .step[data-art="stick_closed"]::after {
+      background: transparent !important;
+      border: 2px solid var(--art-color);
+    }
+    .step[data-art="stick_closed"]::after { inset: 22%; }
+
+    .swatch.shape {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      background: var(--repique);
+    }
+
+    .swatch.shape.dot { width: 7px; height: 7px; border-radius: 50%; margin: 0 2.5px; }
+    .swatch.shape.ring { background: transparent; border: 2px solid var(--repique); }
+
     @keyframes rise {
       from { opacity: 0; transform: translateY(18px); }
       to { opacity: 1; transform: translateY(0); }
@@ -879,6 +1013,70 @@
             </div>
             <input id="density" type="range" min="0.05" max="0.95" step="0.05" value="0.55">
           </div>
+          <div class="field full">
+            <div class="range-head">
+              <span class="label">Microtiming</span>
+              <span class="pill" id="microtiming-value">1.00</span>
+            </div>
+            <input id="microtiming" type="range" min="0" max="1.5" step="0.05" value="1">
+          </div>
+          <label class="field full">
+            <span class="label">Chico</span>
+            <select id="lock-chico">
+              <option value="true">Fijo (madera del toque)</option>
+              <option value="false">Libre (lo decide el modelo)</option>
+            </select>
+          </label>
+          <details class="field full advanced">
+            <summary>Controles avanzados</summary>
+            <div class="advanced-grid">
+              <div class="field">
+                <div class="range-head">
+                  <span class="label">Foco (top-p)</span>
+                  <span class="pill" id="top-p-value">0.92</span>
+                </div>
+                <input id="top-p" type="range" min="0.5" max="1" step="0.01" value="0.92">
+              </div>
+              <div class="field">
+                <div class="range-head">
+                  <span class="label">Guia de estilo</span>
+                  <span class="pill" id="guidance-value">1.00</span>
+                </div>
+                <input id="guidance" type="range" min="0" max="3" step="0.1" value="1">
+              </div>
+              <label class="field">
+                <span class="label">Estilo</span>
+                <select id="style">
+                  <option value="">Sin estilo</option>
+                  <option value="montevideo">Montevideo</option>
+                  <option value="cuareim">Cuareim</option>
+                  <option value="ansina">Ansina</option>
+                  <option value="cordon">Cordon</option>
+                </select>
+              </label>
+              <label class="field">
+                <span class="label">Reglas del toque</span>
+                <select id="strict-rules">
+                  <option value="true">Estrictas</option>
+                  <option value="false">Libres</option>
+                </select>
+              </label>
+              <label class="field">
+                <span class="label">Palmas de clave</span>
+                <select id="palmas">
+                  <option value="true">Con palmas</option>
+                  <option value="false">Sin palmas</option>
+                </select>
+              </label>
+              <div class="field">
+                <span class="label">Semilla (vacia = al azar)</span>
+                <div class="seed-row">
+                  <input id="random-seed" type="number" min="0" step="1" placeholder="al azar">
+                  <button class="button secondary small" id="reuse-seed" type="button" disabled>Usar ultima</button>
+                </div>
+              </div>
+            </div>
+          </details>
         </div>
         <div class="preset-stack">
           <p class="status-copy">Atajo recomendado</p>
@@ -909,6 +1107,10 @@
             <div class="legend-item"><span class="swatch" style="background: var(--repique)"></span>Repique</div>
             <div class="legend-item"><span class="swatch" style="background: var(--piano)"></span>Piano</div>
             <div class="legend-item"><span class="swatch" style="background: var(--clave)"></span>Clave</div>
+            <div class="legend-item"><span class="swatch shape"></span>Palo / golpe abierto</div>
+            <div class="legend-item"><span class="swatch shape dot"></span>Mano / apagado</div>
+            <div class="legend-item"><span class="swatch shape ring"></span>Madera / palo del piano</div>
+            <div class="legend-item">El corrimiento horizontal es el microtiming (exagerado x2)</div>
           </div>
           <div class="mixer mixer-inline">
             <div class="mixer-inline-head">
@@ -919,6 +1121,25 @@
             </div>
             <div id="mixer"></div>
           </div>
+        </div>
+        <div class="structure">
+          <div class="structure-head">
+            <p class="status-copy">Forma del toque: seccion por compas</p>
+            <button class="button secondary small" id="structure-auto" type="button">Forma automatica</button>
+          </div>
+          <div class="structure-bars" id="structure"></div>
+        </div>
+        <div class="pattern-tools">
+          <span class="tool-label">Rehacer, manteniendo el resto:</span>
+          <button class="button secondary small" data-regen="repique" type="button" disabled>Repique</button>
+          <button class="button secondary small" data-regen="piano" type="button" disabled>Piano</button>
+          <button class="button secondary small" data-regen="chico" type="button" disabled>Chico</button>
+          <button class="button secondary small" id="regen-bars" type="button" disabled>Compases marcados</button>
+          <span class="tool-gap"></span>
+          <span class="tool-label">Exportar:</span>
+          <button class="button secondary small" id="export-wav" type="button" disabled>WAV</button>
+          <button class="button secondary small" id="export-midi" type="button" disabled>MIDI</button>
+          <button class="button secondary small" id="export-json" type="button" disabled>JSON</button>
         </div>
         <div class="pattern" id="pattern"></div>
         <div class="meta">
@@ -1277,6 +1498,28 @@
           ]
         }
       }
+    };
+
+    const SECTION_LABELS = {
+      base: "Base",
+      intro: "Intro",
+      llamada_repique: "Llamada repique",
+      llamada_piano: "Llamada piano",
+      cierre: "Cierre"
+    };
+
+    // Song form edited in the UI. While `custom` is false it follows the
+    // automatic form for the current number of bars.
+    const structureState = { custom: false, sections: [], regenerate: new Set() };
+    let lastSeed = null;
+
+    // API v2 repique articulations -> existing synth profiles / sample banks.
+    // `madera` must not be sent as hit_type "clave": preparePlaybackData moves
+    // those events to the palmas track.
+    const REPIQUE_ARTICULATION_ALIASES = {
+      palo: "talk_open",
+      mano: "talk_support",
+      madera: "clave"
     };
 
     function cloneStepPattern(pattern) {
@@ -1645,6 +1888,25 @@
       presetGroove: document.getElementById("preset-groove"),
       temperature: document.getElementById("temperature"),
       density: document.getElementById("density"),
+      microtiming: document.getElementById("microtiming"),
+      microtimingValue: document.getElementById("microtiming-value"),
+      lockChico: document.getElementById("lock-chico"),
+      topP: document.getElementById("top-p"),
+      topPValue: document.getElementById("top-p-value"),
+      guidance: document.getElementById("guidance"),
+      guidanceValue: document.getElementById("guidance-value"),
+      style: document.getElementById("style"),
+      strictRules: document.getElementById("strict-rules"),
+      palmas: document.getElementById("palmas"),
+      randomSeed: document.getElementById("random-seed"),
+      reuseSeed: document.getElementById("reuse-seed"),
+      structure: document.getElementById("structure"),
+      structureAuto: document.getElementById("structure-auto"),
+      regenButtons: Array.from(document.querySelectorAll("[data-regen]")),
+      regenBars: document.getElementById("regen-bars"),
+      exportWav: document.getElementById("export-wav"),
+      exportMidi: document.getElementById("export-midi"),
+      exportJson: document.getElementById("export-json"),
       loadPreset: document.getElementById("load-preset"),
       playPreset: document.getElementById("play-preset"),
       replay: document.getElementById("replay"),
@@ -1758,6 +2020,9 @@
       const density = Number(refs.density.value).toFixed(2);
       refs.temperatureValue.textContent = temperature;
       refs.densityValue.textContent = density;
+      refs.microtimingValue.textContent = Number(refs.microtiming.value).toFixed(2);
+      refs.topPValue.textContent = Number(refs.topP.value).toFixed(2);
+      refs.guidanceValue.textContent = Number(refs.guidance.value).toFixed(2);
       refs.chipTemperature.textContent = temperature;
       refs.chipDensity.textContent = density;
       refs.chipSeed.textContent = refs.seed.options[refs.seed.selectedIndex].text;
@@ -1773,6 +2038,18 @@
     function preparePlaybackData(data) {
       if (!data || data._prepared) {
         return data;
+      }
+
+      // API v2 sends a chico with learned microtiming: keep it as is.
+      if (data.source !== "preset" && Number(data.version) >= 2) {
+        return {
+          ...data,
+          _prepared: true,
+          events: (data.events || []).map((event) => ({
+            ...event,
+            step: typeof event.step === "number" ? event.step : Math.round((event.time || 0) / (data.step_duration || 1))
+          }))
+        };
       }
 
       const normalizedEvents = [];
@@ -1929,6 +2206,8 @@
       refs.density.value = String(preset.density);
       refs.presetGroove.value = preset.id;
       refs.presetNote.textContent = preset.note;
+      structureState.custom = false;
+      syncStructure();
       updateLiveLabels();
       setStatus(`Ruta cargada: ${preset.label}.`, `Ruta ${preset.label}`);
     }
@@ -1939,7 +2218,349 @@
     }
 
     function updateReplayAvailability() {
-      refs.replay.disabled = !lastGeneratedData;
+      const hasData = Boolean(lastGeneratedData);
+      refs.replay.disabled = !hasData;
+      [refs.exportWav, refs.exportMidi, refs.exportJson].forEach((button) => {
+        button.disabled = !hasData;
+      });
+      refs.regenButtons.forEach((button) => {
+        button.disabled = !hasData;
+      });
+      refs.regenBars.disabled = !hasData || structureState.regenerate.size === 0;
+      refs.reuseSeed.disabled = lastSeed === null;
+    }
+
+    // --- song form editor ------------------------------------------------------------
+
+    function currentBars() {
+      return Math.max(4, Math.min(16, Number(refs.bars.value) || 4));
+    }
+
+    function syncStructure() {
+      const bars = currentBars();
+      if (!structureState.custom) {
+        structureState.sections = Array.from({ length: bars }, (_, barIndex) => sectionForBar(barIndex, bars));
+      } else {
+        // Keep the user's choices, extend with "base" or trim to the new length.
+        structureState.sections = Array.from({ length: bars }, (_, barIndex) => structureState.sections[barIndex] || "base");
+      }
+      structureState.regenerate.forEach((barIndex) => {
+        if (barIndex >= bars) {
+          structureState.regenerate.delete(barIndex);
+        }
+      });
+      renderStructureEditor();
+    }
+
+    function renderStructureEditor() {
+      refs.structure.innerHTML = "";
+      structureState.sections.forEach((section, barIndex) => {
+        const chip = document.createElement("div");
+        chip.className = "bar-chip";
+        chip.dataset.selected = structureState.regenerate.has(barIndex) ? "true" : "false";
+
+        const title = document.createElement("span");
+        title.textContent = `Compas ${barIndex + 1}`;
+
+        const select = document.createElement("select");
+        select.setAttribute("aria-label", `Seccion del compas ${barIndex + 1}`);
+        Object.entries(SECTION_LABELS).forEach(([value, label]) => {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = label;
+          option.selected = value === section;
+          select.appendChild(option);
+        });
+        select.addEventListener("change", () => {
+          structureState.custom = true;
+          structureState.sections[barIndex] = select.value;
+        });
+
+        const regenLabel = document.createElement("label");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = structureState.regenerate.has(barIndex);
+        checkbox.addEventListener("change", () => {
+          if (checkbox.checked) {
+            structureState.regenerate.add(barIndex);
+          } else {
+            structureState.regenerate.delete(barIndex);
+          }
+          chip.dataset.selected = checkbox.checked ? "true" : "false";
+          updateReplayAvailability();
+        });
+        regenLabel.append(checkbox, document.createTextNode("Rehacer"));
+
+        chip.append(title, select, regenLabel);
+        refs.structure.appendChild(chip);
+      });
+    }
+
+    // --- requests ----------------------------------------------------------------------
+
+    function buildGenerationParams() {
+      const params = {
+        tempo: Math.max(50, Math.min(220, Number(refs.tempo.value) || 90)),
+        bars: currentBars(),
+        seed: refs.seed.value,
+        temperature: Number(refs.temperature.value) || 0.9,
+        density: Number(refs.density.value) || 0.55,
+        top_p: Number(refs.topP.value) || 0.92,
+        guidance: Number(refs.guidance.value),
+        lock_chico: refs.lockChico.value === "true",
+        strict_rules: refs.strictRules.value === "true",
+        palmas: refs.palmas.value === "true",
+        structure: structureState.sections.join(",")
+      };
+      if (refs.style.value) {
+        params.style = refs.style.value;
+      }
+      if (refs.randomSeed.value !== "") {
+        params.random_seed = Math.max(0, Math.round(Number(refs.randomSeed.value)));
+      }
+      return params;
+    }
+
+    async function readJsonResponse(res) {
+      if (!res.ok) {
+        let detail = "";
+        try {
+          detail = (await res.json()).detail || "";
+        } catch (err) {
+          detail = "";
+        }
+        throw new Error(`La solicitud fallo con ${res.status}${detail ? `: ${detail}` : ""}`);
+      }
+      const contentType = (res.headers.get("content-type") || "").toLowerCase();
+      if (!contentType.includes("application/json")) {
+        throw new Error("La URL consultada devolvio HTML en lugar de JSON. Revisa API_BASE_URL y el deploy del backend.");
+      }
+      return res.json();
+    }
+
+    async function applyGeneratedResult(data, topMessage) {
+      if (typeof data.random_seed === "number") {
+        lastSeed = data.random_seed;
+      }
+      if (Array.isArray(data.structure) && data.structure.length) {
+        structureState.sections = data.structure.slice();
+        refs.bars.value = String(data.bars);
+        renderStructureEditor();
+      }
+      lastGeneratedData = preparePlaybackData(data);
+      updateReplayAvailability();
+      await playGeneratedData(lastGeneratedData, topMessage);
+      if (lastSeed !== null && data.source !== "preset") {
+        refs.metaPhrase.textContent = `${refs.metaPhrase.textContent} · semilla ${lastSeed}`;
+      }
+    }
+
+    async function regenerateAndPlay({ keepInstruments = [], regenerateBars = null }, label) {
+      if (!lastGeneratedData) {
+        setStatus("Genera una base primero para poder rehacer una parte.", "Todavia no hay base");
+        return;
+      }
+
+      const buttons = [refs.gen, refs.regenBars, ...refs.regenButtons];
+      buttons.forEach((button) => {
+        button.disabled = true;
+      });
+      setStatus(`Rehaciendo ${label} y manteniendo el resto del toque.`, "Rehaciendo...");
+      try {
+        ensureApiConfigured();
+        const body = {
+          ...buildGenerationParams(),
+          bars: lastGeneratedData.bars,
+          tempo: lastGeneratedData.tempo,
+          events: lastGeneratedData.events.map(({ instrument, step, time, velocity, offset_ms, articulation, hit_type }) => ({
+            instrument, step, time, velocity, offset_ms, articulation, hit_type
+          })),
+          keep_instruments: keepInstruments
+        };
+        if (regenerateBars) {
+          body.regenerate_bars = regenerateBars;
+        }
+        const res = await fetch(buildApiUrl("/regenerate"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        await applyGeneratedResult(await readJsonResponse(res), `Rehecho: ${label}`);
+      } catch (err) {
+        clearPlayhead();
+        refs.engineBadge.textContent = "Error";
+        setStatus(err.message || "No se pudo rehacer la parte pedida.", "Error");
+        console.error(err);
+      } finally {
+        refs.gen.disabled = false;
+        updateReplayAvailability();
+      }
+    }
+
+    async function checkApiHealth() {
+      if (!getApiBaseUrl() && !isLocalhost()) {
+        return;
+      }
+      try {
+        const res = await fetch(buildApiUrl("/health"));
+        const health = await readJsonResponse(res);
+        refs.engineBadge.textContent = health.model_loaded ? "Modelo listo" : "Reglas";
+        refs.metaEngine.textContent = health.model_loaded
+          ? "Checkpoint entrenado disponible"
+          : "Sin checkpoint: motor ritmico por reglas";
+      } catch (err) {
+        refs.engineBadge.textContent = "API sin respuesta";
+        console.warn("No se pudo consultar /health", err);
+      }
+    }
+
+    // --- export ------------------------------------------------------------------------
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function exportBaseName(data) {
+      const seedPart = lastSeed !== null && data.source !== "preset" ? `-s${lastSeed}` : "";
+      return `candombe-${data.tempo}bpm-${data.bars}c${seedPart}`;
+    }
+
+    function exportJson() {
+      const { _prepared, ...data } = lastGeneratedData;
+      downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }), `${exportBaseName(data)}.json`);
+    }
+
+    // General MIDI drum notes; chico/repique/piano match data_preprocess.py so a
+    // MIDI exported here can be imported back as training data.
+    const MIDI_NOTES = { chico: 42, repique: 38, piano: 36, clave: 39 };
+
+    function buildMidiFile(data) {
+      const ppq = 480;
+      const ticksPerStep = ppq / 4;
+      const stepMs = data.step_duration * 1000;
+      const scale = Number(refs.microtiming.value);
+      const notes = [];
+      data.events.forEach((ev) => {
+        const note = MIDI_NOTES[ev.instrument];
+        if (!note || getTrackMix(ev.instrument) <= 0) {
+          return;
+        }
+        const step = typeof ev.step === "number" ? ev.step : Math.round(ev.time / data.step_duration);
+        const offsetTicks = ((ev.offset_ms || 0) * (Number.isFinite(scale) ? scale : 1) / stepMs) * ticksPerStep;
+        const start = Math.max(0, Math.round(step * ticksPerStep + offsetTicks));
+        const velocity = clamp(Math.round(ev.velocity), 1, 127);
+        notes.push({ tick: start, bytes: [0x99, note, velocity] });
+        notes.push({ tick: start + ticksPerStep / 2, bytes: [0x89, note, 0] });
+      });
+      // Note-offs before note-ons on the same tick.
+      notes.sort((a, b) => a.tick - b.tick || a.bytes[0] - b.bytes[0]);
+
+      const varLen = (value) => {
+        const out = [value & 0x7f];
+        let rest = value >> 7;
+        while (rest > 0) {
+          out.unshift((rest & 0x7f) | 0x80);
+          rest >>= 7;
+        }
+        return out;
+      };
+      const usPerQuarter = Math.round(60000000 / data.tempo);
+      const track = [
+        0x00, 0xff, 0x51, 0x03, (usPerQuarter >> 16) & 0xff, (usPerQuarter >> 8) & 0xff, usPerQuarter & 0xff,
+        0x00, 0xff, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08
+      ];
+      let lastTick = 0;
+      notes.forEach(({ tick, bytes }) => {
+        track.push(...varLen(tick - lastTick), ...bytes);
+        lastTick = tick;
+      });
+      track.push(0x00, 0xff, 0x2f, 0x00);
+
+      const header = [0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, (ppq >> 8) & 0xff, ppq & 0xff];
+      const length = track.length;
+      const trackHeader = [0x4d, 0x54, 0x72, 0x6b, (length >>> 24) & 0xff, (length >> 16) & 0xff, (length >> 8) & 0xff, length & 0xff];
+      return new Uint8Array([...header, ...trackHeader, ...track]);
+    }
+
+    function exportMidi() {
+      downloadBlob(new Blob([buildMidiFile(lastGeneratedData)], { type: "audio/midi" }), `${exportBaseName(lastGeneratedData)}.mid`);
+    }
+
+    function encodeWav(buffer) {
+      const channels = buffer.numberOfChannels;
+      const frames = buffer.length;
+      const view = new DataView(new ArrayBuffer(44 + frames * channels * 2));
+      const writeText = (offset, text) => {
+        for (let i = 0; i < text.length; i += 1) {
+          view.setUint8(offset + i, text.charCodeAt(i));
+        }
+      };
+      writeText(0, "RIFF");
+      view.setUint32(4, 36 + frames * channels * 2, true);
+      writeText(8, "WAVE");
+      writeText(12, "fmt ");
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, channels, true);
+      view.setUint32(24, buffer.sampleRate, true);
+      view.setUint32(28, buffer.sampleRate * channels * 2, true);
+      view.setUint16(32, channels * 2, true);
+      view.setUint16(34, 16, true);
+      writeText(36, "data");
+      view.setUint32(40, frames * channels * 2, true);
+      const data = Array.from({ length: channels }, (_, channel) => buffer.getChannelData(channel));
+      let offset = 44;
+      for (let frame = 0; frame < frames; frame += 1) {
+        for (let channel = 0; channel < channels; channel += 1) {
+          const sample = Math.max(-1, Math.min(1, data[channel][frame]));
+          view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+          offset += 2;
+        }
+      }
+      return new Blob([view], { type: "audio/wav" });
+    }
+
+    async function exportWav() {
+      const data = lastGeneratedData;
+      refs.exportWav.disabled = true;
+      setStatus("Renderizando el audio con la misma mezcla y microtiming que estas escuchando.", "Exportando WAV...");
+      try {
+        await ensureAudioContext();
+        await ensureSamplesLoaded();
+        const sampleRate = audioCtx.sampleRate;
+        const duration = data.step_duration * data.bars * 16 + 1.5;
+        const offline = new OfflineAudioContext(2, Math.ceil(duration * sampleRate), sampleRate);
+
+        // The voices read the global context and master bus: point them at the
+        // offline graph while scheduling, then restore the live ones.
+        const liveContext = audioCtx;
+        const liveMaster = currentMaster;
+        audioCtx = offline;
+        currentMaster = null;
+        try {
+          const destination = makeMasterBus();
+          data.events.forEach((ev) => playInstrument(ev, 0.05, destination));
+        } finally {
+          audioCtx = liveContext;
+          currentMaster = liveMaster;
+        }
+
+        const rendered = await offline.startRendering();
+        downloadBlob(encodeWav(rendered), `${exportBaseName(data)}.wav`);
+        setStatus("WAV listo.", "Exportado");
+      } catch (err) {
+        setStatus(err.message || "No se pudo exportar el audio.", "Error al exportar");
+        console.error(err);
+      } finally {
+        updateReplayAvailability();
+      }
     }
 
     function buildMixer() {
@@ -2221,10 +2842,14 @@
         return null;
       }
 
-      const hitType = eventData.hit_type || "default";
-      const exactVariant = sampleVariantBuffers.get(`${eventData.instrument}:${hitType}`);
-      if (exactVariant) {
-        return pickRoundRobinBuffer(`${eventData.instrument}:${hitType}`, exactVariant);
+      // Articulation banks first (API v2), then the older phrase-role banks.
+      const alias = eventData.instrument === "repique" ? REPIQUE_ARTICULATION_ALIASES[eventData.articulation] : null;
+      const candidates = [eventData.articulation, eventData.hit_type, alias].filter(Boolean);
+      for (const hitType of candidates) {
+        const exactVariant = sampleVariantBuffers.get(`${eventData.instrument}:${hitType}`);
+        if (exactVariant) {
+          return pickRoundRobinBuffer(`${eventData.instrument}:${hitType}`, exactVariant);
+        }
       }
 
       const defaultVariant = sampleVariantBuffers.get(`${eventData.instrument}:default`);
@@ -2486,6 +3111,11 @@
     }
 
     function getRepiqueStrokeProfile(eventData) {
+      const alias = eventData && REPIQUE_ARTICULATION_ALIASES[eventData.hit_type];
+      if (alias) {
+        return getRepiqueStrokeProfile({ ...eventData, hit_type: alias });
+      }
+
       if (eventData && eventData.hit_type === "clave") {
         return {
           type: "clave",
@@ -3069,7 +3699,8 @@
 
     function playInstrument(ev, startTime, destination) {
       const velocity = Math.max(0.18, Math.min(1, ev.velocity / 127));
-      const time = startTime + ev.time + ((ev.offset_ms || 0) / 1000);
+      const microtimingScale = Number(refs.microtiming.value);
+      const time = startTime + ev.time + ((ev.offset_ms || 0) * (Number.isFinite(microtimingScale) ? microtimingScale : 1) / 1000);
       const voices = ACTIVE_VOICES.voices[ev.instrument] || [];
       const trackMix = getTrackMix(ev.instrument);
 
@@ -3126,14 +3757,21 @@
       clearPlayhead();
       refs.pattern.innerHTML = "";
       const totalSteps = data.bars * 16;
+      const stepMs = (data.step_duration || 0.166) * 1000;
       const eventsByTrack = Object.fromEntries(TRACKS.map((track) => [track.key, new Map()]));
 
       data.events.forEach((ev) => {
         const stepIndex = typeof ev.step === "number"
           ? Math.min(totalSteps - 1, Math.max(0, ev.step))
           : Math.min(totalSteps - 1, Math.max(0, Math.round(ev.time / data.step_duration)));
-        const prevVelocity = eventsByTrack[ev.instrument].get(stepIndex) || 0;
-        eventsByTrack[ev.instrument].set(stepIndex, Math.max(prevVelocity, ev.velocity));
+        const track = eventsByTrack[ev.instrument];
+        if (!track) {
+          return;
+        }
+        const previous = track.get(stepIndex);
+        if (!previous || ev.velocity > previous.velocity) {
+          track.set(stepIndex, ev);
+        }
       });
 
       TRACKS.forEach((track) => {
@@ -3146,17 +3784,31 @@
 
         const grid = document.createElement("div");
         grid.className = "track-grid";
-        grid.style.gridTemplateColumns = `repeat(${totalSteps}, minmax(0, 1fr))`;
+        // A minimum column width keeps cells legible; long pieces scroll inside .pattern.
+        grid.style.gridTemplateColumns = `repeat(${totalSteps}, minmax(14px, 1fr))`;
 
         for (let step = 0; step < totalSteps; step += 1) {
           const cell = document.createElement("div");
-          const velocity = eventsByTrack[track.key].get(step) || 0;
+          const ev = eventsByTrack[track.key].get(step);
+          const velocity = ev ? ev.velocity : 0;
           const intensity = velocity ? Math.max(0.22, velocity / 127) : 0;
           cell.className = `step ${track.key}${(step + 1) % 16 === 0 ? " bar-edge" : ""}`;
           cell.dataset.active = velocity ? "true" : "false";
           cell.dataset.current = "false";
           cell.dataset.stepIndex = String(step);
           cell.style.opacity = velocity ? `${0.34 + intensity * 0.66}` : "1";
+          if (ev) {
+            const articulation = ev.articulation || ev.hit_type || "";
+            const offsetMs = Number(ev.offset_ms) || 0;
+            // Shift the dot by the microtiming, exaggerated x2 so a few ms are visible.
+            const nudge = Math.max(-45, Math.min(45, (offsetMs / stepMs) * 200));
+            cell.dataset.art = articulation;
+            cell.style.setProperty("--nudge", `${nudge.toFixed(1)}%`);
+            const bar = Math.floor(step / 16) + 1;
+            const beat = Math.floor((step % 16) / 4) + 1;
+            const sixteenth = (step % 4) + 1;
+            cell.title = `${track.label} · compas ${bar}, tiempo ${beat}.${sixteenth} · ${articulation || "golpe"} · intensidad ${velocity} · ${offsetMs >= 0 ? "+" : ""}${offsetMs.toFixed(1)} ms`;
+          }
           grid.appendChild(cell);
         }
 
@@ -3232,40 +3884,17 @@
     }
 
     async function generateAndPlay() {
-      const tempo = Math.max(50, Math.min(220, Number(refs.tempo.value) || 90));
-      const bars = Math.max(4, Math.min(16, Number(refs.bars.value) || 4));
-      const seed = refs.seed.value;
-      const temperature = Number(refs.temperature.value) || 0.9;
-      const density = Number(refs.density.value) || 0.55;
-
       refs.gen.disabled = true;
       refs.engineBadge.textContent = "Cargando";
       setStatus("Generando un nuevo mapa ritmico y preparando el audio.", "Generando...");
 
       try {
         ensureApiConfigured();
-        const params = new URLSearchParams({
-          tempo: String(tempo),
-          bars: String(bars),
-          seed,
-          temperature: String(temperature),
-          density: String(density)
-        });
-
-        const res = await fetch(buildApiUrl(`/generate?${params.toString()}`));
-        if (!res.ok) {
-          throw new Error(`La solicitud fallo con ${res.status}`);
-        }
-
-        const contentType = (res.headers.get("content-type") || "").toLowerCase();
-        if (!contentType.includes("application/json")) {
-          throw new Error("La URL consultada devolvio HTML en lugar de JSON. Revisa API_BASE_URL y el deploy del backend.");
-        }
-
-        const data = await res.json();
-        lastGeneratedData = preparePlaybackData(data);
-        updateReplayAvailability();
-        await playGeneratedData(lastGeneratedData, "Sonando tambores individuales");
+        const query = new URLSearchParams(
+          Object.entries(buildGenerationParams()).map(([key, value]) => [key, String(value)])
+        );
+        const res = await fetch(buildApiUrl(`/generate?${query.toString()}`));
+        await applyGeneratedResult(await readJsonResponse(res), "Sonando tambores individuales");
       } catch (err) {
         clearPlayhead();
         refs.engineBadge.textContent = "Error";
@@ -3278,6 +3907,33 @@
 
     refs.temperature.addEventListener("input", updateLiveLabels);
     refs.density.addEventListener("input", updateLiveLabels);
+    refs.microtiming.addEventListener("input", updateLiveLabels);
+    refs.topP.addEventListener("input", updateLiveLabels);
+    refs.guidance.addEventListener("input", updateLiveLabels);
+    refs.bars.addEventListener("change", syncStructure);
+    refs.structureAuto.addEventListener("click", () => {
+      structureState.custom = false;
+      syncStructure();
+    });
+    refs.reuseSeed.addEventListener("click", () => {
+      if (lastSeed !== null) {
+        refs.randomSeed.value = String(lastSeed);
+      }
+    });
+    refs.regenButtons.forEach((button) => {
+      const instrument = button.dataset.regen;
+      button.addEventListener("click", () => regenerateAndPlay(
+        { keepInstruments: ["chico", "repique", "piano"].filter((name) => name !== instrument) },
+        button.textContent.toLowerCase()
+      ));
+    });
+    refs.regenBars.addEventListener("click", () => {
+      const bars = Array.from(structureState.regenerate).sort((a, b) => a - b);
+      regenerateAndPlay({ regenerateBars: bars }, `compases ${bars.map((bar) => bar + 1).join(", ")}`);
+    });
+    refs.exportWav.addEventListener("click", exportWav);
+    refs.exportMidi.addEventListener("click", exportMidi);
+    refs.exportJson.addEventListener("click", exportJson);
     refs.seed.addEventListener("change", updateLiveLabels);
     refs.presetGroove.addEventListener("change", updatePresetNote);
     refs.loadPreset.addEventListener("click", () => applyPreset(getGroovePreset()));
@@ -3316,6 +3972,7 @@
 
     populatePresetOptions();
     buildMixer();
+    syncStructure();
     updateLiveLabels();
     updateSampleStatus();
     updateReplayAvailability();
@@ -3324,6 +3981,7 @@
       refs.engineBadge.textContent = "Sin API";
     }
     renderPattern({ bars: 4, step_duration: 0.166, events: [] });
+    checkApiHealth();
   </script>
 </body>
 </html>
